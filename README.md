@@ -1,2 +1,95 @@
-# mindstorms
-Create and manage a new os on the lego mindstorms hub via usb
+# Introduction
+
+This package is for lego hubs, like mindstorms or spike. The app is a bit limited and if you run large programs on the hub, you wil get a MemoryError.
+
+
+## What is this about?
+
+ -  To install software on the hub (and you can also restore the lego software)
+ -  To upload/download easy files to/from the hub
+ -  To interact to the hub with the installed software without using the app
+
+
+## What is this NOT about?
+
+ -  To interact to the hub with the lego software
+ -  To flash firmware
+
+
+## What are the requirements?
+
+Install: `pip install -r requirements.txt`
+
+Needed:
+ -  rshell
+ -  serial
+
+Optional:
+ -  mpy-cross, you can compile your programs to .mpy programs to use less storage and to run faster. See link: [micropython repo on github](https://github.com/micropython/micropython)
+
+
+## How to use?
+
+### Connect with the hub
+
+Import the library and connect with `rshell.Pyboard`.
+
+```import mindstorms
+
+hub = mindstorms.Hub_connect_pyboard()
+```
+
+When none parameters were given to `Hub_connect_pyboard()`, it will search to the hub with `mindstorms.find_device()`. If it can't find it, it will raise a RuntimeError.
+You can add a parameter for the device node of the hub, like /dev/cuaU0 or a other device. You can use `mindstorms.Hub_connect_pyboard(device)`.
+
+You can do:
+ -  Close connection with `hub.close()`.
+ -  Download/upload file with `hub.download_file(path_hub, path_computer)` or `hub.upload_file(path_computer, path_hub)`.
+ -  Execute micropython code on the hub with `hub.exec(str)`.
+ -  Power off or restart the hub with `hub.power_off()` or `hub.restart()`. Make sure the connection will be closed.
+ -  Set power off timeout in miliseconds with `hub.set_power_off_timeout(ms)`.
+ -  Install the software with `hub.install(restart_after_installing)`. If `restart_after_installing` is False, the connection will stay opened.
+
+
+### Easy install the software
+
+Install the software to use `mindstorms.install(device)`.
+
+```import mindstorms
+
+mindstorms.install() # does the same as mindstorms.install(mindstorms.find_device())
+
+## add device node
+device = '/dev/cuaU0'
+mindstorms.install(device)
+```
+
+
+## Connect with the event-loop on the hub
+
+You can only do this when the software is installed on the hub.
+
+Use `mindstorms.Hub_connect_event_loop(device)`.
+
+```import mindstorms
+
+hub = mindstorms.Hub_connect_event_loop()
+```
+
+This will connect to the event loop on the hub. The event loop works with asyncio, on micropython uasyncio.
+
+You can do:
+ -  Close connection, download/upload file, power off, restart and set power off timeout on the same was as `Hub_connect_pyboard()`.
+ -  Send a command to the event loop, you can only send a dict with some keywords in it, see [table for i/o to hub](notes/io) for more information.
+ -  Upload a user-created program to the hub. This program will be stored on /programs/NAME.
+        Use `hub.upload_program(path_computer, name, animation)`.
+        Only the `path_computer` parameter is required.
+        You can use the `name` parameter to change the name of the program on the hub. That name will be placed on /programs/NAME.
+        You can add the `animation` parameter. If it is given, the hub will show that animation instead of the program name.
+        The animation must be a list with a list of 5 list of 0 or 1 (off or on).
+
+## Links
+ -  [docs hub package](https://lego.github.io/MINDSTORMS-Robot-Inventor-hub-API/pkg_hub.html)
+ -  [mindstorms repo github](https://github.com/noamraph/mindstorms)
+ -  [rshell github](https://github.com/dhylands/rshell)
+

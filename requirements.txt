@@ -1,0 +1,2 @@
+rshell==0.0.36
+serial
