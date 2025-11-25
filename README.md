@@ -88,7 +88,53 @@ You can do:
         You can add the `animation` parameter. If it is given, the hub will show that animation instead of the program name.
         The animation must be a list with a list of 5 list of 0 or 1 (off or on).
 
-## Links
+# User programs
+
+You can create a user program and upload it to the hub.
+
+
+## Requirements
+
+This are the requirements for a user program
+
+
+### Required
+
+ -  main function (accept none parameters)
+
+
+### Optional
+
+ -  yield in main function to continue the event loop. Use `yield` to update event loop and continue so fast as possible, or `yield SEC` and replace `SEC` for the number of seconds (may be float) to wait.
+
+
+## Multi threading
+
+A easy way to run multiple programs at the same time is to use yield, here is a example:
+
+```import hub
+
+def main():
+    abc = setup_abc()
+    write = setup_writer()
+    while True:
+        abc.__next__()
+        write.__next__()
+        yield
+
+def setup_abc():
+    while True:
+        print('abc')
+        yield
+
+def setup_writer():
+    while True:
+        hub.display.show('abc')
+        yield
+```
+            
+
+# Links
  -  [docs hub package](https://lego.github.io/MINDSTORMS-Robot-Inventor-hub-API/pkg_hub.html)
  -  [mindstorms repo github](https://github.com/noamraph/mindstorms)
  -  [rshell github](https://github.com/dhylands/rshell)
