@@ -1,0 +1,28 @@
+# io information from/to hub
+# everytime, a dict will be send/received
+# it must have always a type (dict['type'])
+# sometimes, 1 type has several kinds of attributes, name will separate them
+# if there is none name, by 'name' in the list below will come a '-'
+# for example: {'type': 'error', 'name': 'InputError', 'message': 'This is a unexpected error.'}
+
+Type              name        other
+# hub --> computer
+error             InputError   message
+ |                ExecuteError errname, errmessage
+  \               SystemError  errname, errmessage, message
+req_file          -            name, content
+req_execute       -            command, output
+req_programs      -            programs
+# computer --> hub
+upload_file       -            path, content
+download_file     -            path
+power_off         -            fast
+power_off_timeout -            timeout
+restart           -            fast
+upload_program    -            name, data, nickname, [animation]
+execute           -            command
+run_tmp           -            name, data
+run               -            name
+get_programs      -            -
+delete_program    -            name
+ch_name           -            old, new
