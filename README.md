@@ -80,7 +80,7 @@ This will connect to the event loop on the hub. The event loop works with asynci
 
 You can do:
  -  Close connection, download/upload file, power off, restart and set power off timeout on the same was as `Hub_connect_pyboard()`.
- -  Send a command to the event loop, you can only send a dict with some keywords in it, see [table for i/o to hub](notes/io) for more information.
+ -  Send a command to the event loop, you can only send a dict with some keywords in it, see [table for i/o to hub](notes/io.txt) for more information.
  -  Upload a user-created program to the hub. This program will be stored on /programs/NAME.
         Use `hub.upload_program(path_computer, name, animation)`.
         Only the `path_computer` parameter is required.
