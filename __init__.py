@@ -1,6 +1,7 @@
 # import modules
 from rshell.pyboard import Pyboard
 from serial.tools.list_ports import comports
+from time import sleep as wait
 import serial as _serial
 import os as _os
 import inspect as _inspect
@@ -159,9 +160,21 @@ class Hub_connect_pyboard:
         # create hub_ui directory on hub
         if 'hub_ui' not in listdir_hub:
             self.exec('os.mkdir(\'/hub_ui\')')
+        # remove all existing files in hub_ui
+        for file in eval(self.exec('print(os.listdir(\'/hub_ui\'))')):
+            self.exec('os.remove(\'/hub_ui/' + file + '\')')
         # upload all files in hub_ui
         for file in _os.listdir(install_dir + '/hub_ui'):
             self.upload_file(install_dir + '/hub_ui/' + file, '/hub_ui/' + file)
+        # create device directory on hub
+        if 'device' not in listdir_hub:
+            self.exec('os.mkdir(\'/device\')')
+        # remove all existing files in device
+        for file in eval(self.exec('print(os.listdir(\'/device\'))')):
+            self.exec('os.remove(\'/device/' + file + '\')')
+        # upload all files in device
+        for file in _os.listdir(install_dir + '/device'):
+            self.upload_file(install_dir + '/device/' + file, '/device/' + file)
         # show installed text
         print()
         print('The ui is installed on the hub!')
@@ -199,7 +212,7 @@ class Hub_connect_event_loop:
         self.device = device
 
         # connect with hub
-        self._serial = _serial.Serial(device)
+        self._serial = _serial.Serial(device, baudrate = 125200)
         self._serial.write(b'\n')
 
         # set waitings dict, here come all requests to the hub while we wait for answer
@@ -208,39 +221,51 @@ class Hub_connect_event_loop:
         # set function to get data on requests from the hub
         def get_data_from_hub():
             # read lines of serial connection
-            for line in self._serial:
-                data = line.strip().decode()
-                # create dict from data
+            while True:
                 try:
-                    data = eval(data)
-                except:
-                    print('Invalid type of received data: ' + str(data))
+                    for line in self._serial:
+                        data = line.strip().decode()
+                        # create dict from data
+                        try:
+                            data = eval(data)
+                        except:
+                            print('Invalid type of received data: ' + str(data))
+                            continue
+
+                        # check received data is a dict
+                        if type(data) != dict:
+                            print('Not a dict: ' + str(data))
+                            continue
+
+                        print('Received data: ' + str(data))
+    
+                        keys = []
+                        items = list(data.items())
+                        for item in items:
+                            keys.append(item[0])
+
+                        if 'type' in keys:
+                            if data['type'] == 'error':
+                                if 'name' in keys:
+                                    if data['name'] == 'InputError':
+                                        if 'message' in keys:
+                                            print('Error: ' + str(data['message']))
+                                    elif data['name'] == 'SystemError':
+                                        if 'errname' in keys and 'errmessage' in keys and 'message' in keys:
+                                            print('SystemError: errname: ' + str(data['errname']) + ', errmessage: ' + str(data['errmessage']) + ': ' + str(data['message']))
+
+                            elif data['type'] == 'req_file':
+                                if 'name' in keys and 'content' in keys:
+                                    file = open(self._waitings[str(data['name'])], mode = 'w')
+                                    file.write(data['content'])
+                                    file.close()
+
+                except KeyboardInterrupt:
                     continue
 
-                # check received data is a dict
-                if type(data) != dict:
-                    print('Not a dict: ' + str(data))
+                except Exception as error:
+                    print('Error: ' + str(type(error)) + ': ' + str(error))
                     continue
-
-                print('Received data: ' + str(data))
-
-                keys = []
-                items = list(data.items())
-                for item in items:
-                    keys.append(item[0])
-
-                if 'type' in keys:
-                    if data['type'] == 'error':
-                        if 'name' in keys:
-                            if data['name'] == 'InputError':
-                                if 'message' in keys:
-                                    print('Error: ' + str(data['message']))
-                            elif data['name'] == 'SystemError':
-                                if 'errname' in keys and 'errmessage' in keys and 'message' in keys:
-                                    print('SystemError: errname: ' + str(data['errname']) + ', errmessage: ' + str(data['errmessage']) + ': ' + str(data['message']))
-                    elif data['type'] == 'req_file':
-                        if 'name' in keys and 'content' in keys:
-                            pass
 
         # start function as a new process
         self._get_data_from_hub = _multiprocessing.Process(target = get_data_from_hub, daemon = True)
@@ -286,14 +311,12 @@ class Hub_connect_event_loop:
         if not nickname:
             nickname = name
 
-        # read data
-        file = open(path_computer)
-        data = file.read()
-        file.close()
         if animation:
-            self.send({'type': 'upload_program', 'name': name, 'nickname': nickname, 'data': data, 'animation': animation})
+            self.send({'type': 'upload_program', 'name': name, 'nickname': nickname, 'animation': animation})
         else:
-            self.send({'type': 'upload_program', 'name': name, 'nickname': nickname, 'data': data})
+            self.send({'type': 'upload_program', 'name': name, 'nickname': nickname})
+
+        self.upload_file(path_computer, '/programs/' + name + '.py')
 
         return name
 
@@ -330,14 +353,25 @@ class Hub_connect_event_loop:
         self.send({'type': 'stop_send_sensor_data'})
 
     def send(self, dict_):
-        self._serial.write(str(dict_).encode() + b'\n')
+        data = cut_string(str(dict_))
+        for string in data:
+            string = str(string).encode() + b'\n'
+            self._serial.write(string)
+            self._serial.flush()
+            wait(0.6)
 
     def exec(self, command):
         self.send({'type': 'execute', 'command': str(command)})
 
+    def send_program_input(self, value):
+        self.send({'type': 'program_input', 'value': str(value)})
+
     def power_off(self, fast = False):
         self.send({'type': 'power_off', 'fast': fast})
         self.close()
+
+    def set_power_off_timeout_tmp(self, timeout):
+        self.send({'type': 'power_off_timeout_tmp', 'timeout': timeout})
 
     def set_power_off_timeout(self, timeout):
         self.send({'type': 'power_off_timeout', 'timeout': timeout})
@@ -350,4 +384,17 @@ class Hub_connect_event_loop:
     def close(self):
         self._get_data_from_hub.kill()
         self._serial.close()
+
+def cut_string(string, size = 64):
+    data = []
+    count = size
+    for char in string:
+        if count >= size:
+            count = 0
+            data.append(char)
+        else:
+            data[-1] = data[-1] + char
+        count = count + 1
+
+    return data
 

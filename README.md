@@ -91,6 +91,7 @@ You can do:
 # User programs
 
 You can create a user program and upload it to the hub.
+See more information in the [docs](docs/user_programs).
 
 
 ## Requirements
@@ -132,6 +133,21 @@ def setup_writer():
         hub.display.show('abc')
         yield
 ```
+
+
+## Packages
+
+You can see here the built-in package hub and the package device.
+
+
+### Hub
+
+You can use it with `import hub`. See [docs](https://lego.github.io/MINDSTORMS-Robot-Inventor-hub-API/pkg_hub.html) for more info.
+
+
+### Device
+
+Device is a package that uses hub (see above) and it is easy to use. See [docs](docs/device.md) for more info.
             
 
 # Links
