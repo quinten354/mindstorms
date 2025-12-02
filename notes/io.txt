@@ -8,21 +8,24 @@
 Type              name        other
 # hub --> computer
 error             InputError   message
- |                ExecuteError errname, errmessage
-  \               SystemError  errname, errmessage, message
+ \                ExecuteError errname, errmessage
 req_file          -            name, content
 req_execute       -            command, output
 req_programs      -            programs
+output            -            value
+
 # computer --> hub
 upload_file       -            path, content
 download_file     -            path
 power_off         -            fast
 power_off_timeout -            timeout
 restart           -            fast
-upload_program    -            name, data, nickname, [animation]
+upload_program    -            name, nickname, [animation]
 execute           -            command
 run_tmp           -            name, data
 run               -            name
 get_programs      -            -
 delete_program    -            name
 ch_name           -            old, new
+program_input     -            value
+
