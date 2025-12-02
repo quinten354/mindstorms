@@ -1,6 +1,7 @@
 # import modules
 import hub
 import os
+import builtins
 
 import hub_ui
 import uasyncio as asyncio
@@ -36,7 +37,10 @@ for item in os.listdir('/tmp'):
 # set settings in /etc/config
 file = open('/etc/config')
 data = file.read()
-data = data.split('\\n')
+try:
+    data = eval(data)
+except:
+    data = {}
 file.close()
 del file
 
@@ -50,20 +54,25 @@ hub.power_off(timeout = power_off_timeout)
 
 del data
 
-events = {'stop': False, 'run': None, 'program_runner': False, 'sensor_data': False}
+events = {'stop': False, 'run': None, 'program_runner': False, 'sensor_data': False, 'program_input': [], 'power_off_timeout': power_off_timeout, 'remote': None, 'remote_connect': None, 'refresh_ui': False}
 
 # button press
 def center_button_change(time):
-    hub.power_off(timeout = power_off_timeout)
+    hub.power_off(timeout = events['power_off_timeout'])
     if time > 600:
-        events['stop_ui'] = True
+        events['stop'] = True
+        events['program_runner'] = False
         hub.button.center.was_pressed()
 
 def button_change(time):
-    hub.power_off(timeout = power_off_timeout)
+    hub.power_off(timeout = events['power_off_timeout'])
 
 def bluetooth_button_change(time):
-    hub.power_off(timeout = power_off_timeout)
+    hub.power_off(timeout = events['power_off_timeout'])
+    if time > 400:
+        events['remote_connect'] = 'disconnect'
+    else:
+        events['remote_connect'] = 'connect'
 
 hub.button.center.on_change(center_button_change)
 hub.button.left.on_change(button_change)
@@ -82,13 +91,39 @@ async def setup_program_runner(events):
 async def setup_sensor_data(events):
     await hub_ui.sensor_data(events)
 
+async def setup_controller(events):
+    while True:
+        if events['remote_connect'] == 'connect':
+            remote = hub_ui.Remote()
+            connect = remote.connect()
+            events['remote'] = remote
+            while True:
+                try:
+                    connect.__next__()
+                except builtins.StopIteration:
+                    break
+                if events['remote_connect'] == 'disconnect':
+                    events['remote'].cancel()
+                    events['remote'] = None
+                    events['remote_connect'] = None
+                    break
+                await asyncio.sleep(0)
+
+        if events['remote_connect'] == 'disconnect':
+            events['remote'].cancel()
+            events['remote'] = None
+            events['remote_connect'] = None 
+
+        await asyncio.sleep(1)
+
 async def main():
     asyncio.create_task(setup_ui(events))
     asyncio.create_task(setup_io(events))
+    asyncio.create_task(setup_program_runner(events))
+    asyncio.create_task(setup_sensor_data(events))
+    asyncio.create_task(setup_controller(events))
     while True:
         await asyncio.sleep(16)
-
-hub_ui.sync_programs()
 
 asyncio.run(main())
 
