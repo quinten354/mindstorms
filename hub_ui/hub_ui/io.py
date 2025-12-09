@@ -99,14 +99,16 @@ async def main(events):
             elif data['type'] == 'power_off_timeout_tmp':
                 if 'timeout' in keys:
                     hub.power_off(timeout = data['timeout'] * 1000)
-                    events['power_off_timeout'] = data['timeout']
+                    hub.config['powerdown_timeout'] = data['timeout'] * 1000
+                    events['power_off_timeout'] = data['timeout'] * 1000
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for power off timeout must have 'timeout'."})
 
             elif data['type'] == 'power_off_timeout':
                 if 'timeout' in keys:
                     hub.power_off(timeout = data['timeout'] * 1000)
-                    events['power_off_timeout'] = data['timeout']
+                    hub.config['powerdown_timeout'] = data['timeout'] * 1000
+                    events['power_off_timeout'] = data['timeout'] * 1000
                     file = open('/etc/config')
                     config = file.read()
                     file.close()
@@ -114,7 +116,7 @@ async def main(events):
                         config = eval(config)
                     except:
                         config = {}
-                    config['power_off_timeout'] = data['timeout']
+                    config['power_off_timeout'] = data['timeout'] * 1000
                     file = open('/etc/config', mode = 'w')
                     file.write(str(config))
                     file.close()
@@ -154,6 +156,8 @@ async def main(events):
                     file = open('/.program_info', mode = 'w')
                     file.write(str(list_info))
                     file.close()
+
+                    events['restart_ui'] = True
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for upload a program must have 'name', 'data', and optional 'animation'."})
@@ -222,7 +226,10 @@ async def main(events):
                         os.remove('/programs/' + data['name'] + '.py')
                     except Exception as error:
                         print_error(error, "Can't delete program '" + data['name'] + "'.")
+
                     sync_programs()
+
+                    events['restart_ui'] = True
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for delete a program must have 'name'."})
