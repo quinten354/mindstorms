@@ -51,14 +51,16 @@ except:
 
 # set timeout
 hub.power_off(timeout = power_off_timeout)
+hub.config['powerdown_timeout'] = power_off_timeout
 
 del data
 
-events = {'stop': False, 'run': None, 'program_runner': False, 'sensor_data': False, 'program_input': [], 'power_off_timeout': power_off_timeout, 'remote': None, 'remote_connect': None, 'refresh_ui': False}
+events = {'stop': False, 'run': None, 'program_runner': False, 'sensor_data': False, 'program_input': [], 'power_off_timeout': power_off_timeout, 'remote': None, 'remote_connect': None, 'remote_value': [0, 0, 0, 0, 0, 0], 'refresh_ui': False}
 
 # button press
 def center_button_change(time):
     hub.power_off(timeout = events['power_off_timeout'])
+    hub.config['powerdown_timeout'] = events['power_off_timeout']
     if time > 600:
         events['stop'] = True
         events['program_runner'] = False
@@ -66,9 +68,11 @@ def center_button_change(time):
 
 def button_change(time):
     hub.power_off(timeout = events['power_off_timeout'])
+    hub.config['powerdown_timeout'] = events['power_off_timeout']
 
 def bluetooth_button_change(time):
     hub.power_off(timeout = events['power_off_timeout'])
+    hub.config['powerdown_timeout'] = events['power_off_timeout']
     if time > 400:
         events['remote_connect'] = 'disconnect'
     else:
@@ -124,6 +128,12 @@ async def main():
     asyncio.create_task(setup_controller(events))
     while True:
         await asyncio.sleep(16)
+
+file = open('/etc/hostname')
+hub.config['hostname'] = file.read()
+file.close()
+
+hub.config['device_get_can_return_float'] = True
 
 asyncio.run(main())
 
