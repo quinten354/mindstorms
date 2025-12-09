@@ -20,6 +20,7 @@ def install(device = None):
     if not device:
         device = find_device()
     hub = Hub_connect_pyboard(device)
+    hub.exec('hub.power_off(timeout = 0)')
     hub.exec('hub.led((0, 255, 50))')
     hub.exec('hub.display.pixel(0, 0, 0)')
     hub.exec('hub.display.pixel(1, 0, 0)')
@@ -212,7 +213,7 @@ class Hub_connect_event_loop:
         self.device = device
 
         # connect with hub
-        self._serial = _serial.Serial(device, baudrate = 125200)
+        self._serial = _serial.Serial(device)
         self._serial.write(b'\n')
 
         # set waitings dict, here come all requests to the hub while we wait for answer
@@ -259,9 +260,17 @@ class Hub_connect_event_loop:
                                     file = open(self._waitings[str(data['name'])], mode = 'w')
                                     file.write(data['content'])
                                     file.close()
+                            
+                            elif data['type'] == 'sensor_data':
+                                pass
 
                 except KeyboardInterrupt:
                     continue
+
+                except _serial.serialutil.SerialException:
+                    print('Connection closed.')
+                    self._serial.close()
+                    exit()
 
                 except Exception as error:
                     print('Error: ' + str(type(error)) + ': ' + str(error))
@@ -353,9 +362,9 @@ class Hub_connect_event_loop:
         self.send({'type': 'stop_send_sensor_data'})
 
     def send(self, dict_):
-        data = cut_string(str(dict_))
+        data = cut_string(str(dict_) + '\n')
         for string in data:
-            string = str(string).encode() + b'\n'
+            string = str(string).encode()
             self._serial.write(string)
             self._serial.flush()
             wait(0.6)
@@ -371,12 +380,24 @@ class Hub_connect_event_loop:
         self.close()
 
     def set_power_off_timeout_tmp(self, timeout):
+        '''
+        Set power off timeout in seconds. This will be resetted after a restart.
+        '''
+
         self.send({'type': 'power_off_timeout_tmp', 'timeout': timeout})
 
     def set_power_off_timeout(self, timeout):
+        '''
+        Set power off timeout in seconds.
+        '''
+
         self.send({'type': 'power_off_timeout', 'timeout': timeout})
 
     def restart(self, fast = False):
+        '''
+        Restart the hub
+        '''
+
         self.send({'type': 'restart', 'fast': fast})
         self.close()
 
