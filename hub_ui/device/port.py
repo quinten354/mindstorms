@@ -50,9 +50,14 @@ class motor:
         port = _get_port(port)
         port.motor.run_for_degrees(degrees, **kwargs)
 
-    def run_to_position(port, pos, **kwargs):
+    def run_to_rel_position(port, pos, **kwargs):
         port = _get_port(port)
         port.motor.run_to_position(pos, **kwargs)
+
+    def run_to_abs_position(port, pos, **kwargs):
+        port = _get_port(port)
+        port.motor.mode([(3, 0)])
+        port.motor.run_for_degrees(- port.motor.get()[0], **kwargs)
 
     def set_default(port, **kwargs):
         port = _get_port(port)

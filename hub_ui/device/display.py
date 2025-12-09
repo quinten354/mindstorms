@@ -274,9 +274,9 @@ class Print_hub_matrix:
                 list_pixels.append([1, 1, 1, 1, 1])
                 list_pixels.append([0, 0, 0, 0, 1])
             if char == '2':
+                list_pixels.append([1, 0, 0, 0, 1])
                 list_pixels.append([1, 0, 0, 1, 1])
-                list_pixels.append([1, 0, 1, 0, 1])
-                list_pixels.append([1, 1, 0, 0, 1])
+                list_pixels.append([0, 1, 1, 0, 1])
             if char == '3':
                 list_pixels.append([1, 0, 1, 0, 1])
                 list_pixels.append([1, 0, 1, 0, 1])
