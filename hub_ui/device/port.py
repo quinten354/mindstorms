@@ -57,7 +57,16 @@ class motor:
     def run_to_abs_position(port, pos, **kwargs):
         port = _get_port(port)
         port.motor.mode([(3, 0)])
-        port.motor.run_for_degrees(- port.motor.get()[0], **kwargs)
+        abs_position = port.motor.get()[0]
+        to_position = pos - abs_position
+        while to_position > 180:
+            to_position = to_position - 360
+        while to_position < -180:
+            to_position = to_position + 360
+        port.motor.mode([(2, 0)])
+        rel_position = port.motor.get()[0]
+        to_rel_position = rel_position + to_position
+        port.motor.run_to_position(to_rel_position)
 
     def set_default(port, **kwargs):
         port = _get_port(port)
@@ -106,7 +115,7 @@ class devices:
             if get_type(port) != 61:
                 raise RuntimeError('No color sensor (dev 61) connected to port ' + str(port) + '.')
             port = _get_port(port)
-            port.device.mode(0)
+            port.device.mode(8)
 
         def off(port):
             if get_type(port) != 61:
@@ -121,12 +130,12 @@ class devices:
             port.device.mode(0)
             return port.device.get()[0]
 
-        def get_rgb(port):
+        def get_reflection(port):
             if get_type(port) != 61:
                 raise RuntimeError('No color sensor (dev 61) connected to port ' + str(port) + '.')
             port = _get_port(port)
-            port.device.mode(5)
-            return port.device.get()[:-1]
+            port.device.mode(1)
+            return port.device.get()[0]
 
     class light_matrix:
         def clear(port):
@@ -161,14 +170,6 @@ class devices:
                     raise ValueError('List must be 9 length.')
             else:
                 raise TypeError('Color must be str or list (9 length), not ' + str(type(color)) + '.')
-
-        def get_color(port):
-            if get_type(port) != 64:
-                raise RuntimeError('No light matrix (dev 64) connected to port ' + str(port) + '.')
-            port = _get_port(port)
-            port.device.mode(2)
-            output = port.device.get()
-            return output
 
         OFF = '0'
         WHITE = 'z'
@@ -213,13 +214,6 @@ class devices:
             port = _get_port(port)
             port.device.mode(5)
 
-        def get_color(port):
-            if get_type(port) != 37:
-                raise RuntimeError('No color-distance sensor (dev 37) connected to port ' + str(port) + '.')
-            port = _get_port(port)
-            port.device.mode(0)
-            return port.device.get()
-
         def get_cm(port):
             if get_type(port) != 37:
                 raise RuntimeError('No color-distance sensor (dev 37) connected to port ' + str(port) + '.')
@@ -250,6 +244,13 @@ class devices:
                 raise RuntimeError('No color-distance sensor (dev 37) connected to port ' + str(port) + '.')
             port = _get_port(port)
             port.device.mode(1)
+            return port.device.get()[0]
+
+        def get_reflection(port):
+            if get_type(port) != 37:
+                raise RuntimeError('No color-distance sensor (dev 37) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(3)
             return port.device.get()[0]
 
     class force_sensor:

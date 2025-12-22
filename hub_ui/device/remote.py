@@ -3,9 +3,9 @@ from time import time_ns as time
 
 def connect(events):
     events['remote_connect'] = 'connect'
-    while True:
-        if events['remote']:
-            return events['remote']
+
+def is_connected(events):
+    return bool(events['remote'])
 
 def disconnect(events):
     events['remote_connect'] = 'disconnect'
