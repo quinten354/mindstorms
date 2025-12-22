@@ -2,9 +2,10 @@
 import hub
 import os
 import builtins
+import uasyncio as asyncio
+from time import time
 
 import hub_ui
-import uasyncio as asyncio
 
 restart = lambda: hub.power_off(restart = True)
 
@@ -55,33 +56,7 @@ hub.config['powerdown_timeout'] = power_off_timeout
 
 del data
 
-events = {'stop': False, 'run': None, 'program_runner': False, 'sensor_data': False, 'program_input': [], 'power_off_timeout': power_off_timeout, 'remote': None, 'remote_connect': None, 'remote_value': [0, 0, 0, 0, 0, 0], 'refresh_ui': False}
-
-# button press
-def center_button_change(time):
-    hub.power_off(timeout = events['power_off_timeout'])
-    hub.config['powerdown_timeout'] = events['power_off_timeout']
-    if time > 600:
-        events['stop'] = True
-        events['program_runner'] = False
-        hub.button.center.was_pressed()
-
-def button_change(time):
-    hub.power_off(timeout = events['power_off_timeout'])
-    hub.config['powerdown_timeout'] = events['power_off_timeout']
-
-def bluetooth_button_change(time):
-    hub.power_off(timeout = events['power_off_timeout'])
-    hub.config['powerdown_timeout'] = events['power_off_timeout']
-    if time > 400:
-        events['remote_connect'] = 'disconnect'
-    else:
-        events['remote_connect'] = 'connect'
-
-hub.button.center.on_change(center_button_change)
-hub.button.left.on_change(button_change)
-hub.button.right.on_change(button_change)
-hub.button.connect.on_change(bluetooth_button_change)
+events = {'stop': False, 'run': None, 'program_runner': False, 'sensor_data': False, 'program_input': [], 'power_off_timeout': power_off_timeout, 'remote': None, 'remote_connect': None, 'remote_value': [0, 0, 0, 0, 0, 0], 'refresh_ui': False, 'last_activity': time()}
 
 async def setup_ui(events):
     await hub_ui.main(events)
