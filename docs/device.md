@@ -16,7 +16,8 @@ It's very simple, import the module: `import device`.
 
 Get the current rgb color of the led
 
-```device.get_led()
+```import device
+device.get_led()
 ```
 
 
@@ -25,7 +26,8 @@ Get the current rgb color of the led
 Set the led rgb color (must be a tuple with 3 values between 0 and 255)
 See constants --> colors for prepared colors.
 
-```device.set_led((RED, GREEN, BLUE))
+```import device
+device.set_led((RED, GREEN, BLUE))
 ```
 
 
@@ -33,7 +35,8 @@ See constants --> colors for prepared colors.
 
 Get the current temperature of the hub in °C.
 
-```device.get_temp()
+```import device
+device.get_temp()
 ```
 
 
@@ -43,7 +46,8 @@ Get the current temperature of the hub in °C.
 
 Get the voltage of the battery in mV.
 
-```device.battery.get_voltage()
+```import device
+device.battery.get_voltage()
 ```
 
 
@@ -51,7 +55,8 @@ Get the voltage of the battery in mV.
 
 Get the power of the battery in mA.
 
-```device.battery.get_power()
+```import device
+device.battery.get_power()
 ```
 
 
@@ -59,7 +64,8 @@ Get the power of the battery in mA.
 
 Get the current capacity of the battery in %.
 
-```device.battery.get_current()
+```import device
+device.battery.get_current()
 ```
 
 
@@ -67,7 +73,8 @@ Get the current capacity of the battery in %.
 
 Get the current temperature of the battery in °C.
 
-```device.battery.get_temp()
+```import device
+device.battery.get_temp()
 ```
 
 
@@ -80,7 +87,8 @@ The hub has 4 buttons: center, connect (bluetooth), left and right. For each but
 
 Returns True if the button is pressed right now or False if it not.
 
-```device.button.right.is_pressed()
+```import device
+device.button.right.is_pressed()
 ```
 
 
@@ -88,7 +96,8 @@ Returns True if the button is pressed right now or False if it not.
 
 Returns True if the button was pressed.
 
-```device.button.right.was_pressed()
+```import device
+device.button.right.was_pressed()
 ```
 
 
@@ -96,7 +105,8 @@ Returns True if the button was pressed.
 
 Returns the number of times the button is pressed.
 
-```device.button.right.presses()
+```import device
+device.button.right.presses()
 ```
 
 
@@ -120,7 +130,8 @@ It requires a list, with a list of rows with a list of pixels (1 = on, 0 = off).
 
 Update the animation
 
-```picture = device.display.Picture([
+```import device
+picture = device.display.Picture([
     [[1, 1, 0, 1, 1],
     [1, 1, 0, 1, 1],
     [0, 0, 0, 0, 0],
@@ -154,7 +165,8 @@ Update the animation
 
 Start the animation and stops if it is done. Parameters: interval: float.
 
-```animation = device.display.Print_hub_matrix('test123')
+```import device
+animation = device.display.Print_hub_matrix('test123')
 
 while True:
     animation.show_next()
