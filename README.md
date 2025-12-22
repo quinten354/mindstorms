@@ -91,7 +91,7 @@ You can do:
 # User programs
 
 You can create a user program and upload it to the hub.
-See more information in the [docs](docs/user_programs).
+See more information in the [docs](docs/user_programs.md).
 
 
 ## Requirements
@@ -101,7 +101,7 @@ This are the requirements for a user program
 
 ### Required
 
- -  main function (accept none parameters)
+ -  main function (accept one parameter, can be used to connect to a lego remote or something else)
 
 
 ### Optional
@@ -115,7 +115,7 @@ A easy way to run multiple programs at the same time is to use yield, here is a 
 
 ```import hub
 
-def main():
+def main(events):
     abc = setup_abc()
     write = setup_writer()
     while True:
