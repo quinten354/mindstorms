@@ -216,9 +216,6 @@ class Hub_connect_event_loop:
         self._serial = _serial.Serial(device)
         self._serial.write(b'\n')
 
-        # set waitings dict, here come all requests to the hub while we wait for answer
-        self._waitings = {}
-
         # set function to get data on requests from the hub
         def get_data_from_hub():
             # read lines of serial connection
@@ -230,15 +227,15 @@ class Hub_connect_event_loop:
                         try:
                             data = eval(data)
                         except:
-                            print('Invalid type of received data: ' + str(data))
+                            print('ERROR: Invalid type of received data: ' + str(data))
                             continue
 
                         # check received data is a dict
                         if type(data) != dict:
-                            print('Not a dict: ' + str(data))
+                            print('ERROR: Not a dict: ' + str(data))
                             continue
 
-                        print('Received data: ' + str(data))
+                        #print('Received data: ' + str(data))
     
                         keys = []
                         items = list(data.items())
@@ -250,31 +247,122 @@ class Hub_connect_event_loop:
                                 if 'name' in keys:
                                     if data['name'] == 'InputError':
                                         if 'message' in keys:
-                                            print('Error: ' + str(data['message']))
-                                    elif data['name'] == 'SystemError':
+                                            print('Received error: ' + str(data['message']))
+                                    elif data['name'] == 'ExecuteError':
                                         if 'errname' in keys and 'errmessage' in keys and 'message' in keys:
-                                            print('SystemError: errname: ' + str(data['errname']) + ', errmessage: ' + str(data['errmessage']) + ': ' + str(data['message']))
+                                            print('Received ExecuteError: errname: ' + str(data['errname']) + ', errmessage: ' + str(data['errmessage']) + ': ' + str(data['message']))
+                                    else:
+                                        print('ERROR: Unknown received type of error: ' + data['name'] + '.')
+
+                                else:
+                                    print('ERROR: Received data misses keyword \'name\'.')
 
                             elif data['type'] == 'req_file':
                                 if 'name' in keys and 'content' in keys:
-                                    file = open(self._waitings[str(data['name'])], mode = 'w')
-                                    file.write(data['content'])
-                                    file.close()
+                                    try:
+                                        path = self._data[str(data['name'])]
+                                    except:
+                                        print('ERROR: Unexpected file: ' + data['name'] + '.')
+                                        continue
+                                    try:
+                                        file = open(path, mode = 'w')
+                                        file.write(data['content'])
+                                        file.close()
+                                    except Exception as error:
+                                        print('ERROR: ' + str(type(error)) + ': ' + str(error) + ': Cannot write to file: ' + path + '.')
+                                    try:
+                                        del self._data[str(data['name'])]
+                                    except:
+                                        pass
+
+                                else:
+                                    print('ERROR: Received data misses keywords \'name\' and \'content\'.')
+
+                            elif data['type'] == 'req_execute':
+                                if 'command' in keys and 'output' in keys:
+                                    print('OUTPUT: Output execute: Command: ' + str(data['command']) + ', Output: ' + str(data['output']))
+
+                                else:
+                                    print('ERROR: Received data misses keywords \'command\' and \'output\'.')
+
+                            elif data['type'] == 'req_programs':
+                                if 'programs' in keys:
+                                    print('OUTPUT: Availeble programs: ' + str(data['programs'])[1:][:-1])
+
+                                else:
+                                    print('ERROR: Received data misses keyword \'programs\'.')
                             
                             elif data['type'] == 'sensor_data':
-                                pass
+                                if 'data' in keys:
+                                    self._io['sensor_data'] = str(data['data'])
+
+                                else:
+                                    print('ERROR: Received data misses keyword \'data\'.')
+
+                            elif data['type'] == 'output':
+                                if 'value' in keys:
+                                    self._io['output'] = self._io['output'] + str(data['value'])
+
+                                else:
+                                    print('ERROR: Received data misses keyword \'value\'.')
+                    
+                            elif data['type'] == 'ls':
+                                if 'dirs' in keys and 'files' in keys:
+                                    if len(str(data['dirs'])) > 2 and len(str(data['files'])) > 2:
+                                        print('OUTPUT: Ls: Dirs: ' + str(data['dirs'])[1:][:-1] + ', Files: ' + str(data['files'])[1:][:-1])
+                                    elif len(str(data['dirs'])) > 2:
+                                        print('OUTPUT: Ls: Dirs: ' + str(data['dirs'])[1:][:-1])
+                                    elif len(str(data['files'])) > 2:
+                                        print('OUTPUT: Ls: Files: ' + str(data['files'])[1:][:-1])
+                                    else:
+                                        print('OUTPUT: Ls: Directory empty.')
+
+                                else:
+                                    print('ERROR: Received data misses keywords \'dirs\' and \'files\'.')
+
+                            elif data['type'] == 'isdir':
+                                if 'value' in keys:
+                                    if data['value']:
+                                        print('OUTPUT: Isdir: Directory.')
+                                    else:
+                                        print('OUTPUT: Isdir: File.')
+
+                            elif data['type'] == 'stat':
+                                if 'value' in keys:
+                                    print('OUTPUT: Stat: Type: ' + str(data['value'][0]) + ', Size: ' + str(data['value'][6]))
+
+                            elif data['type'] == 'fsstat':
+                                if 'value' in keys:
+                                    print('OUTPUT: Fsstat: Total blocks: ' + str(data['value'][2]) + ', Used blocks: ' + str(data['value'][2] - data['value'][3]) + ', Free blocks: ' + str(data['value'][3]) + ', Usage: ' + str(round(((data['value'][2] - data['value'][3]) / data['value'][3]) * 100, 2)) + '%.')
+
+                            elif data['type'] == 'events':
+                                if 'value' in keys:
+                                    print('OUTPUT: Events: ' + str(data['value']))
+
+                            else:
+                                print('ERROR: Unknown received type of data: ' + data['type'] + '.')
 
                 except KeyboardInterrupt:
                     continue
 
                 except _serial.serialutil.SerialException:
                     print('Connection closed.')
+                    self._manager._process.kill()
                     self._serial.close()
                     exit()
 
                 except Exception as error:
                     print('Error: ' + str(type(error)) + ': ' + str(error))
                     continue
+
+        # setup manager
+        self._manager = _multiprocessing.Manager()
+        self._data = self._manager.dict()
+        self._io = self._manager.dict()
+
+        # set waitings dict, here come all requests to the hub while we wait for answer
+        self._io['output'] = ''
+        self._io['sensor_data'] = ''
 
         # start function as a new process
         self._get_data_from_hub = _multiprocessing.Process(target = get_data_from_hub, daemon = True)
@@ -293,7 +381,7 @@ class Hub_connect_event_loop:
     # download a file from the hub
     def download_file(self, path_hub, path_computer):
         # add computer path to waitings, so if the program receive the file, it knows where it must download it
-        self._waitings[path_hub] = path_computer
+        self._data[path_hub] = path_computer
         # send request to download the file
         self.send({'type': 'download_file', 'path': str(path_hub)})
 
@@ -336,7 +424,7 @@ class Hub_connect_event_loop:
         file.close()
         self.send({'type': 'run_tmp', 'name': name, 'data': data})
 
-    def upload_and_run(self, path_computer, name = None, nickname = None):
+    def upload_and_run(self, path_computer, name = None, nickname = None, animation = None):
         name = self.upload_program(path_computer, name, nickname, animation)
         self.run(name)
 
@@ -352,8 +440,14 @@ class Hub_connect_event_loop:
     def sync_programs(self):
         self.send({'type': 'sync_programs'})
 
-    def stop(self):
-        self.send({'type': 'stop'})
+    def stop_all(self):
+        self.send({'type': 'stop_all'})
+
+    def stop_ui(self):
+        self.send({'type': 'stop_ui'})
+
+    def stop_program_runner(self):
+        self.send({'type': 'stop_program_runner'})
 
     def start_send_sensor_data(self):
         self.send({'type': 'start_send_sensor_data'})
@@ -401,12 +495,51 @@ class Hub_connect_event_loop:
         self.send({'type': 'restart', 'fast': fast})
         self.close()
 
+    def ls(self, dir):
+        self.send({'type': 'ls', 'dir': dir})
+
+    def touch(self, path):
+        self.send({'type': 'touch', 'path': path})
+
+    def remove(self, path):
+        self.send({'type': 'remove', 'path': path})
+
+    def mkdir(self, dir):
+        self.send({'type': 'mkdir', 'dir': dir})
+
+    def rmdir(self, dir):
+        self.send({'type': 'rmdir', 'dir': dir})
+
+    def reset_ui(self):
+        self.send({'type': 'reset_ui'})
+
+    def get_output(self):
+        output = self._io['output']
+        self._io['output'] = ''
+        return output
+
+    def get_sensor_data(self):
+        return self._io['sensor_data']
+
+    def stat(self, path):
+        self.send({'type': 'stat', 'path': path})
+
+    def fsstat(self):
+        self.send({'type': 'fsstat'})
+
+    def isdir(self, path):
+        self.send({'type': 'isdir', 'path': path})
+
+    def get_events(self):
+        self.send({'type': 'get_events'})
+
     # close connection
     def close(self):
         self._get_data_from_hub.kill()
+        self._manager._process.kill()
         self._serial.close()
 
-def cut_string(string, size = 64):
+def cut_string(string, size = 512):
     data = []
     count = size
     for char in string:
