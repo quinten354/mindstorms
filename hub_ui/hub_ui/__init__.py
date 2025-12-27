@@ -6,7 +6,7 @@ import uasyncio as asyncio
 import builtins
 
 from device.display import EndOfLoopError, Print_hub_matrix, Picture
-from device.system import show_error, sync_programs, print_error
+from device.system import show_error, sync_programs, print_error, reset
 from .io import main as io
 from .sensor_data import main as sensor_data
 from .program_runner import main as program_runner
@@ -48,7 +48,7 @@ async def main(events):
                         program['picture'] = program_data['picture']
 
         # add settings menu to data
-        programs.insert(0, {'name': 'settings', 'picture': [[[0, 1, 0, 1, 0], [1, 1, 1, 1, 1], [0, 1, 0, 1, 0], [1, 1, 1, 1, 1], [0, 1, 0, 1, 0]]]})
+        programs.insert(0, {'name': 'settings', 'picture': [[[0, 0, 1, 0, 0], [0, 1, 1, 1, 0], [1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [1, 0, 1, 0, 1]]]})
 
         # startup ui
         selection = 0
@@ -91,8 +91,8 @@ async def main(events):
                     # run
                     try:
                         while True:
-                            if events['stop']:
-                                events['stop'] = False
+                            if events['stop_ui']:
+                                events['stop_ui'] = False
                                 break
 
                             t = a.__next__()
@@ -103,11 +103,13 @@ async def main(events):
 
                     except builtins.StopIteration:
                         hub.button.center.was_pressed()
+                        reset()
                         continue
 
                     except Exception as error:
                         print_error(error)
                         show_error()
+                        reset()
                         continue
 
                 else:
@@ -118,6 +120,7 @@ async def main(events):
                     except Exception as error:
                         print_error(error)
                         show_error()
+                        reset()
                         continue
 
                     # run
@@ -127,8 +130,8 @@ async def main(events):
                         if a:
                             try:
                                 while True:
-                                    if events['stop']:
-                                        events['stop'] = False
+                                    if events['stop_ui']:
+                                        events['stop_ui'] = False
                                         break
 
                                     t = a.__next__()
@@ -139,17 +142,20 @@ async def main(events):
 
                             except builtins.StopIteration:
                                 hub.button.center.was_pressed()
+                                reset()
                                 continue
 
                             except Exception as error:
                                 print_error(error)
                                 show_error()
                                 hub.button.center.was_pressed()
+                                reset()
                                 continue
 
                     except Exception as error:
                         print_error(error)
                         show_error()
+                        reset()
 
                     try:
                         del a
@@ -159,6 +165,7 @@ async def main(events):
 
                 # if the center button was pressed when the program is running, ignore it
                 hub.button.center.was_pressed()
+                reset()
 
             # left button
             if 'LEFT_MINUS' in rem_pressed:
@@ -201,5 +208,14 @@ async def main(events):
                 selection_ch = False
 
             # wait
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.0625)
+
+            if events['remote']:
+                pressed = events['remote'].pressed()
+                if type(pressed) == tuple:
+                    rem_pressed = pressed
+                if 'LEFT' in pressed or 'LEFT_PLUS' in pressed or 'LEFT_MINUS' in pressed:
+                    continue
+
+            await asyncio.sleep(0.0625)
 

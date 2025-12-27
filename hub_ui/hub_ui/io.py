@@ -6,6 +6,7 @@ import uasyncio as asyncio
 import os
 
 from device.system import sync_programs, print_error
+from device.path import isdir
 
 async def main(events):
     # setup spoll
@@ -157,7 +158,7 @@ async def main(events):
                     file.write(str(list_info))
                     file.close()
 
-                    events['restart_ui'] = True
+                    events['refresh_ui'] = True
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for upload a program must have 'name', 'data', and optional 'animation'."})
@@ -178,12 +179,12 @@ async def main(events):
             # run a program in /tmp
             elif data['type'] == 'run_tmp':
                 if 'name' in keys and 'data' in keys:
-                    file = open('/tmp/' + data['name'] + '.py', mode = 'w')
-                    file.write(data['data'])
+                    file = open('/tmp/' + str(data['name']) + '.py', mode = 'w')
+                    file.write(str(data['data']))
                     file.close()
 
                     events['program_runner'] = True
-                    events['run'] = data['name']
+                    events['run'] = str(data['name'])
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request to run a program in tmp must have 'name' and 'data'."})
@@ -192,7 +193,7 @@ async def main(events):
             elif data['type'] == 'run':
                 if 'name' in keys:
                     events['program_runner'] = True
-                    events['run'] = data['name']
+                    events['run'] = str(data['name'])
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request to run a program must have 'name'."})
@@ -229,7 +230,7 @@ async def main(events):
 
                     sync_programs()
 
-                    events['restart_ui'] = True
+                    events['refresh_ui'] = True
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for delete a program must have 'name'."})
@@ -237,11 +238,18 @@ async def main(events):
             # sync all programs (update /.program_info)
             elif data['type'] == 'sync_programs':
                 sync_programs()
+                events['refresh_ui'] = True
 
             # stop all programs and continue ui
-            elif data['type'] == 'stop':
-                events['program_runner'] = False
-                events['stop'] = True
+            elif data['type'] == 'stop_all':
+                events['stop_program_runner'] = True
+                events['stop_ui'] = True
+
+            elif data['type'] == 'stop_ui':
+                events['stop_ui'] = True
+
+            elif data['type'] == 'stop_program_runner':
+                events['stop_program_runner'] = True
 
             # start sending sensor data to computer
             elif data['type'] == 'start_send_sensor_data':
@@ -254,9 +262,109 @@ async def main(events):
             # controller command
             elif data['type'] == 'program_input':
                 if 'value' in keys:
-                    events['program_input'].append(data['value'])
+                    events['program_input'] = events['program_input'] + data['value']
                 else:
-                    print({'type': 'error', 'name': 'InputError', 'message': "A controller command must have 'value'."})
+                    print({'type': 'error', 'name': 'InputError', 'message': "A program_input command must have 'value'."})
+
+            elif data['type'] == 'ls':
+                if 'dir' in keys:
+                    try:
+                        listdir = os.listdir(data['dir'])
+                    except Exception as error:
+                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get listdir of dir " + str(data['dir']) + '.'})
+                    
+                    files = []
+                    dirs = []
+
+                    for item in listdir:
+                        path = data['dir']
+                        if path[-1] != '/':
+                            path = path + '/'
+                        path = path + item
+                        
+                        if isdir(path):
+                            dirs.append(item)
+                        else:
+                            files.append(item)
+
+                    print({'type': 'ls', 'dirs': str(dirs), 'files': str(files)})
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A ls command must have 'dir'."})
+
+            elif data['type'] == 'touch':
+                if 'path' in keys:
+                    try:
+                        open(data['path'], mode = 'x').close()
+                    except Exception as error:
+                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't create file " + str(data['path']) + '.'})
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A touch command must have 'path'."})
+
+            elif data['type'] == 'remove':
+                if 'path' in keys:
+                    try:
+                        os.remove(data['path'])
+                    except Exception as error:
+                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't remove file " + str(data['path']) + '.'})
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A remove command must have 'path'."})
+
+            elif data['type'] == 'mkdir':
+                if 'dir' in keys:
+                    try:
+                        os.mkdir(data['dir'])
+                    except Exception as error:
+                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't create dir " + str(data['dir']) + '.'})
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A mkdir command must have 'dir'."})
+
+            elif data['type'] == 'rmdir':
+                if 'dir' in keys:
+                    try:
+                        os.rmdir(data['dir'])
+                    except Exception as error:
+                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't remove dir " + str(data['dir']) + '.'})
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A rmdir command must have 'dir'."})
+
+            elif data['type'] == 'reset_ui':
+                events['refresh_ui'] = True
+
+            elif data['type'] == 'isdir':
+                if 'path' in keys:
+                    try:
+                        print({'type': 'isdir', 'value': isdir(path)})
+                    except Exception as error:
+                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get isdir of path " + str(data['path']) + '.'})
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A isdir command must have 'path'."})
+
+            elif data['type'] == 'stat':
+                if 'path' in keys:
+                    try:
+                        print({'type': 'stat', 'value': os.stat(data['path'])})
+                    except Exception as error:
+                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get stat of path " + str(data['path']) + '.'})
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A stat command must have 'path'."})
+
+            elif data['type'] == 'fsstat':
+                try:
+                    print({'type': 'fsstat', 'value': os.statvfs('/')})
+                except Exception as error:
+                    print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get stat of filesystem."})
+
+            elif data['type'] == 'get_events':
+                ev = events.copy()
+                del ev['remote']
+                print({'type': 'events', 'value': ev})
 
             else:
                 print({'type': 'error', 'name': 'InputError', 'message': 'Unknown type: ' + str(data['type'])})

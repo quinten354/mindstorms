@@ -4,6 +4,7 @@ import sys
 import builtins
 
 from .settings import main as settings
+from device.system import show_error, print_error, reset
 
 # if the user runs a program in tmp (for example for a test)
 sys.path.append('/tmp')
@@ -18,9 +19,10 @@ async def main(events):
             continue
 
         # when stop is True, the program runner must exit
-        if events['stop']:
+        if events['stop_program_runner']:
             events['run'] = None
             events['program_runner'] = False
+            events['stop_program_runner'] = False
             continue
 
         # if the program runner is on, run must have a name of what the program runner must run
@@ -37,21 +39,24 @@ async def main(events):
                 try:
                     exec('import ' + events['run'])
                 except Exception as error:
-                    print({'type': 'error', 'name': 'SystemError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't import module '" + name + "'."})
+                    print_error(error)
                     show_error()
                     running = False
                     events['program_runner'] = False
                     events['run'] = None
+                    reset()
                     continue
 
                 # execute MODULE.main to setup program
                 try:
-                    a = eval(data[selection]['name'] + '.main()')
-                except:
+                    a = eval(events['run'] + '.main()')
+                except Exception as error:
+                    print_error(error)
                     show_error()
                     running = False
                     events['program_runner'] = False
                     events['run'] = None
+                    reset()
                     continue
 
             # set running to True, the program has setted up
@@ -69,10 +74,6 @@ async def main(events):
                         await asyncio.sleep(0)
 
             except builtins.StopIteration:
-                running = False
-                events['program_runner'] = False
-                events['run'] = None
-    
                 try:
                     exec('del ' + events['run'])
                 except:
@@ -81,11 +82,13 @@ async def main(events):
                 running = False
                 events['program_runner'] = False
                 events['run'] = None
+                reset()
                 continue
 
             except Exception as error:
-                print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error)})
+                print_error(error)
                 show_error()
+                reset()
     
                 await asyncio.sleep(0.1)
 
@@ -94,5 +97,5 @@ async def main(events):
             running = False
             events['program_runner'] = False
             events['run'] = None
-
+            reset()
 
