@@ -2,29 +2,32 @@
 # hub.port.A.device.get()
 
 # dev number  dev description  mode(s)  description
-61            color sensor     0        light on, list[color], 0 --> 10
-                               1        light on, list[reflection], 0 --> 100
-                               2        light off, list[x], ???
-                               3        light off, list[0, 0, 0]
-                               4        light on, list[a, b], a 0 --> 1024?, b 0 --> 100?
-                               5        light on, list[r, g, b, reflection?], r 0 --> 1024, g 0 --> 1024, b 0 --> 1024, reflection 0 --> 1024
-                               6        light on, list[a, b, c], 0 --> 1024?
-                               7        light off, list[a, b, c, d], a/b/c 0 --> /, d -1
-                               8        light on, list[a, b, c, d], a/b/c rgb? d 1024
-                               9+       light off, list[879, 590, 478, 682, 617, 690, 0]
-62            distance sensor  0/1/2    list[distance], cm
-                               3        list[0]
-                               4        list[distance], inches * 100?
-                               5        list[left-up, right-up, left-down, right-down], light, Values: str, len 4, \x00 --> \x64 (off --> on)
-                               6        list[None]
-                               7        list[62], device number?
-                               8+       list[18, 52, 86, 120, 0, 0, 0]
-47            powerd up motor  0/1      list[0]
-                               2        list[rpos], relative position?
-                               3        list[rpos], also relative position?
-                               4+       list[0]
-64            3x3 light matrix 0/1, 4+  list[0]
-                               2        list[9 colors]
+61            color sensor     0        light on, list[color], 0 --> 10, COLOR
+                               1        light on, list[reflection], 0 --> 100, REFLT
+                               2        light off, list[x], AMBI
+                               3        light off, list[0, 0, 0], LIGHT
+                               4        light on, list[a, b], a 0 --> 1024?, b 0 --> 100?, RREFL
+                               5        light on, list[r, g, b, reflection?], r 0 --> 1024, g 0 --> 1024, b 0 --> 1024, reflection 0 --> 1024, RGB I
+                               6        light on, list[a, b, c], 0 --> 1024?, HSV
+                               7        light off, list[a, b, c, d], a/b/c 0 --> /, d -1, SHSV
+                               8        light on, list[a, b, c, d], a/b/c rgb? d 1024, DEBUG
+                               9+       light off, list[879, 590, 478, 682, 617, 690, 0], CALIB
+62            distance sensor  0/1/2    list[distance], cm, DISTL, DISTS, SINGL
+                               3        list[0], LISTN
+                               4        list[distance], inches * 100?, TRAW
+                               5        list[left-up, right-up, left-down, right-down], light, Values: str, len 4, \x00 --> \x64 (off --> on), LIGHT
+                               6        list[None], PING
+                               7        list[62], device number?, ADRAW
+                               8+       list[18, 52, 86, 120, 0, 0, 0], CALIB
+47, 75        motor            0        list[x], POWER
+                               1        list[x], SPEED
+                               2        list[x], POS
+                               3        list[x], APOS
+                               4        list[x], LOAD
+64            3x3 light matrix 0        list[x], LEV O
+                               1        list[x], COL O
+                               2        list[9 colors], PIX O
+                               3        list[x], TRANS
                                Values:
                                  # off
                                  a = off
@@ -59,15 +62,15 @@
                                  # pink
                                  r
 
-37            color-distance   0        white, list[color], 0 --> 10
-                               1        green, list[distance], inches
-                               2        green, list[number], number of object detected? Moving sensor: nothing, moving object: nothing, moving object in range of sensor: number + 1
-                               3        red, list[reflection], 0 --> 100?
-                               4        blue, list[a], 0 --> ??
-                               5        off, list[-1]
-                               6        white, list[r, g, b], 0 --> 512?
-                               7        off, list[0]
-                               8        grey, list[a, b, c, d], ?
-                               9        off, list[0, 0]
-                               10+      off, list[1109, 1085, 1081, 1079, 1166, 1377, 1755, 1102]
+37            color-distance   0        white, list[color], 0 --> 10, COLOR
+                               1        green, list[distance], inches, PROX
+                               2        green, list[number], number of object detected? Moving sensor: nothing, moving object: nothing, moving object in range of sensor: number + 1, COUNT
+                               3        red, list[reflection], 0 --> 100?, REFLT
+                               4        blue, list[a], 0 --> ??, AMBI
+                               5        off, list[-1], COL O
+                               6        white, list[r, g, b], 0 --> 512?, RGB I
+                               7        off, list[0], IR Tx
+                               8        grey, list[a, b, c, d], ?, SPEC 1
+                               9        off, list[0, 0], DEBUG
+                               10+      off, list[1109, 1085, 1081, 1079, 1166, 1377, 1755, 1102], CALIB
 
