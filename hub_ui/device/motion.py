@@ -6,13 +6,13 @@ def get_acceleration(filtered = False):
 def get_gyroscope(filtered = False):
     return hub.motion.gyroscope(filtered)
 
-def get_yaw():
+def get_yaw(filtered = False):
     return hub.motion.yaw_pitch_roll()[0]
 
-def get_pitch():
+def get_pitch(filtered = False):
     return hub.motion.yaw_pitch_roll()[1]
 
-def get_roll():
+def get_roll(filtered = False):
     return hub.motion.yaw_pitch_roll()[2]
 
 def set_yaw(value):

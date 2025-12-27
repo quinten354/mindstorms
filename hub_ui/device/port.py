@@ -1,11 +1,5 @@
 import hub
 
-class pin5:
-    pass
-
-class pin6:
-    pass
-
 class motor:
     def get_speed(port):
         port = _get_port(port)
@@ -16,6 +10,10 @@ class motor:
         port = _get_port(port)
         port.motor.mode([(2, 0)])
         return port.motor.get()[0]
+
+    def set_rel_pos(port, pos = 0):
+        port = _get_port(port)
+        port.motor.preset(pos)
 
     def get_abs_pos(port):
         port = _get_port(port)
@@ -50,19 +48,30 @@ class motor:
         port = _get_port(port)
         port.motor.run_for_degrees(degrees, **kwargs)
 
-    def run_to_rel_position(port, pos, **kwargs):
+    def run_to_rel_pos(port, pos, **kwargs):
         port = _get_port(port)
         port.motor.run_to_position(pos, **kwargs)
 
-    def run_to_abs_position(port, pos, **kwargs):
+    def run_to_abs_pos(port, pos, direction = 'fastest', **kwargs):
         port = _get_port(port)
         port.motor.mode([(3, 0)])
         abs_position = port.motor.get()[0]
         to_position = pos - abs_position
-        while to_position > 180:
-            to_position = to_position - 360
-        while to_position < -180:
-            to_position = to_position + 360
+        if direction == 'fastest':
+            while to_position > 180:
+                to_position = to_position - 360
+            while to_position < -180:
+                to_position = to_position + 360
+        if direction == 'left':
+            while to_position > 0:
+                to_position = to_position - 360
+            while to_position < -360:
+                to_position = to_position + 360
+        if direction == 'right':
+            while to_position > 360:
+                to_position = to_position - 360
+            while to_position < 0:
+                to_position = to_position + 360
         port.motor.mode([(2, 0)])
         rel_position = port.motor.get()[0]
         to_rel_position = rel_position + to_position
@@ -80,6 +89,16 @@ class devices:
             port = _get_port(port)
             port.device.mode(0)
             return port.device.get()[0]
+
+        def get_inch(port):
+            if get_type(port) != 62:
+                raise RuntimeError('No distance sensor (dev 62) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(0)
+            try:
+                return port.device.get()[0] * 2.54
+            except:
+                return None
 
         def set_light(port, v1, v2, v3, v4):
             if get_type(port) != 62:
@@ -137,6 +156,13 @@ class devices:
             port.device.mode(1)
             return port.device.get()[0]
 
+        def get_rgb(port):
+            if get_type(port) != 61:
+                raise RuntimeError('No color sensor (dev 61) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(5)
+            return port.device.get()[:3]
+
     class light_matrix:
         def clear(port):
             if get_type(port) != 64:
@@ -170,18 +196,6 @@ class devices:
                     raise ValueError('List must be 9 length.')
             else:
                 raise TypeError('Color must be str or list (9 length), not ' + str(type(color)) + '.')
-
-        OFF = '0'
-        WHITE = 'z'
-        GREY = 'Z'
-        RED = 'y'
-        ORANGE = 'X'
-        YELLOW = 'n'
-        GREEN = 'v'
-        CYAN = 'o'
-        BLUE = 's'
-        PURPLE = 'b'
-        PINK = 'r'
 
     class color_distance_sensor:
         def red(port):
@@ -253,6 +267,13 @@ class devices:
             port.device.mode(3)
             return port.device.get()[0]
 
+        def get_counted(port):
+            if get_type(port) != 37:
+                raise RuntimeError('No color-distance sensor (dev 37) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(2)
+            return port.device.get()[0]
+
     class force_sensor:
         pass
 
@@ -273,10 +294,14 @@ def pw_up_get(port):
     port = _get_port(port)
     return port.device.get()
 
-def set_pw_up_mode(port, mode, data = None):
+def set_mode(port, mode, data = None):
     port = _get_port(port)
     if data:
         port.device.mode(mode, data)
     else:
         port.device.mode(mode)
+
+def get_mode(port):
+    port = _get_port(port)
+    return port.device.mode()
 

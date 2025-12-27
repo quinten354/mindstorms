@@ -1,23 +1,21 @@
 import os
 from time import sleep as wait
 
+import device
+import device.port
 from device import set_led
 from .constants import *
 
 def show_error():
-    set_led(colors.RED)
+    set_led(rgb_colors.RED)
     wait(0.2)
-    set_led(colors.WHITE)
+    set_led(rgb_colors.WHITE)
 
-def print_error(err, message = None):
-    tperr = type(err)
-    if tperr == None:
-        pass
-    else:
-        print('Type: ' + str(tperr) + ', Data: ' + str(err))
-
+def print_error(error, message = None):
     if message:
-        print('Message: ' + message)
+        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': str(message)})
+    else:
+        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': None})
 
 def sync_programs():
     listdir = os.listdir('/programs')
@@ -54,4 +52,13 @@ def sync_programs():
     file = open('/.program_info', mode = 'w')
     file.write(str(data))
     file.close()
+
+def reset():
+    set_led(rgb_colors.WHITE)
+    for port in 'A', 'B', 'C', 'D', 'E', 'F':
+        dev_type = device.port.get_type(port)
+        if dev_type == 47 or dev_type == 75:
+            device.port.motor.float(port)
+        if dev_type == 64:
+            device.port.devices.light_matrix.clear(port)
 

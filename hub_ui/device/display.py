@@ -14,7 +14,7 @@ class Picture:
     def show_next(self):
         for y in range(5):
             for x in range(5):
-                hub.display.pixel(x, y, self.list_pixels[self.count][y][x] * 100)
+                hub.display.pixel(x, y, self.list_pixels[self.count][y][x] * 9)
         self.count = self.count + 1
         if self.count >= len(self.list_pixels):
             self.count = 0
@@ -335,7 +335,7 @@ class Print_hub_matrix:
         for number_x in range(5):
             for number_y in range(5):
                 try:
-                    hub.display.pixel(number_x, number_y, list_current_pixels[number_x][number_y] * 100)
+                    hub.display.pixel(number_x, number_y, list_current_pixels[number_x][number_y] * 9)
                 except IndexError:
                     if self.loop:
                         self.count = 0
@@ -357,7 +357,7 @@ class Print_hub_matrix:
 def image(list_pixels):
     for y in range(5):
         for x in range(5):
-            hub.display.pixel(x, y, list_pixels[y][x] * 100)
+            hub.display.pixel(x, y, list_pixels[y][x] * 9)
 
 def clear():
     hub.display.clear()
