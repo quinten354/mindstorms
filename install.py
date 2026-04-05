@@ -1,0 +1,38 @@
+from .connect_pyboard import Hub_connect_pyboard
+
+# install
+def install(device = None):
+    if not device:
+        device = find_device()
+    hub = Hub_connect_pyboard(device)
+    hub.exec('hub.power_off(timeout = 0)')
+    hub.exec('hub.led((0, 255, 50))')
+    hub.exec('hub.display.pixel(0, 0, 0)')
+    hub.exec('hub.display.pixel(1, 0, 0)')
+    hub.exec('hub.display.pixel(2, 0, 100)')
+    hub.exec('hub.display.pixel(3, 0, 0)')
+    hub.exec('hub.display.pixel(4, 0, 0)')
+    hub.exec('hub.display.pixel(0, 1, 0)')
+    hub.exec('hub.display.pixel(1, 1, 0)')
+    hub.exec('hub.display.pixel(2, 1, 100)')
+    hub.exec('hub.display.pixel(3, 1, 0)')
+    hub.exec('hub.display.pixel(4, 1, 0)')
+    hub.exec('hub.display.pixel(0, 2, 100)')
+    hub.exec('hub.display.pixel(1, 2, 0)')
+    hub.exec('hub.display.pixel(2, 2, 100)')
+    hub.exec('hub.display.pixel(3, 2, 0)')
+    hub.exec('hub.display.pixel(4, 2, 100)')
+    hub.exec('hub.display.pixel(0, 3, 0)')
+    hub.exec('hub.display.pixel(1, 3, 100)')
+    hub.exec('hub.display.pixel(2, 3, 100)')
+    hub.exec('hub.display.pixel(3, 3, 100)')
+    hub.exec('hub.display.pixel(4, 3, 0)')
+    hub.exec('hub.display.pixel(0, 4, 0)')
+    hub.exec('hub.display.pixel(1, 4, 0)')
+    hub.exec('hub.display.pixel(2, 4, 100)')
+    hub.exec('hub.display.pixel(3, 4, 0)')
+    hub.exec('hub.display.pixel(4, 4, 0)')
+    hub.install(restart = False)
+    hub.restart()
+    hub.close()
+
