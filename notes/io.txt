@@ -5,45 +5,47 @@
 # if there is none name, by 'name' in the list below will come a '-'
 # for example: {'type': 'error', 'name': 'InputError', 'message': 'This is a unexpected error.'}
 
-Type                   name         other
+Type                   name          other
 # hub --> computer
-error                  InputError   message
- \                     ExecuteError errname, errmessage, message
-req_file               -            name, content
-req_execute            -            command, output
-req_programs           -            programs
-sensor_data            -            data
-output                 -            value
-ls                     -            files, dirs
-isdir                  -            value
-stat                   -            value
-fsstat                 -            value
-events                 -            value
+error                  InputError    message
+ |                     CustomedError message
+ \                     ExecuteError  errname, errmessage, message
+req_file               -             name, content
+req_execute            -             command, output
+req_programs           -             programs
+sensor_data            -             data (see sensor_data.txt for more info)
+output                 -             value
+ls                     -             files, dirs
+isdir                  -             value
+stat                   -             value
+fsstat                 -             value
+runtime_data           -             value
 
 # computer --> hub
-upload_file            -            path, content
-download_file          -            path
-power_off              -            fast
-power_off_timeout      -            timeout
-restart                -            fast
-upload_program         -            name, nickname, [animation]
-execute                -            command
-run_tmp                -            name, data
-run                    -            name
-get_programs           -            -
-delete_program         -            name
-ch_name                -            old, new
-start_send_sensor_data -            -
-stop_send_sensor_data  -            -
-program_input          -            value
-ls                     -            dir
-touch                  -            path
-remove                 -            path
-mkdir                  -            dir
-rmdir                  -            dir
-reset_ui               -            -
-isdir                  -            path
-stat                   -            path
-fsstat                 -            -
-get_events             -            -
+upload_file            -             path, content
+download_file          -             path
+power_off              -             fast
+restart                -             fast
+upload_program         -             name
+execute                -             command
+run_tmp                -             name, data
+run                    -             name
+run_file               -             path
+get_programs           -             -
+delete_program         -             name
+ch_name                -             old, new
+start_send_sensor_data -             -
+stop_send_sensor_data  -             -
+program_input          -             value
+ls                     -             dir
+touch                  -             path
+remove                 -             path
+mkdir                  -             dir
+rmdir                  -             dir
+reset_ui               -             -
+isdir                  -             path
+stat                   -             path
+fsstat                 -             -
+get_runtime_data       -             -
+get_sensor_data        -             -
 

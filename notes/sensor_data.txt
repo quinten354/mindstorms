@@ -1,0 +1,16 @@
+(device_)type var1     value  var2         value     var3     value  var4     value  var5  value
+acceleration  x        float  y            float     z        float  |        |      |     |
+gyroscope     x        float  y            float     z        float  |        |      |     |
+yaw           value    int    |            |         |        |      |        |      |     |
+pitch         value    int    |            |         |        |      |        |      |     |
+roll          value    int    |            |         |        |      |        |      |     |
+battery       capacity int    |            |         |        |      |        |      |     |
+temperature   value    float  |            |         |        |      |        |      |     |
+port          port     char   device_type  int/None  name     str    |        |      |     |
+              |        |      |            |         |        |      |        |      |     |
+37     cd     color    int    reflection   int       counted  int    inches   float  cm    float
+47/75  motor  busy     bool   speed        int       rel_pos  int    abs_pos  int
+61     color  color    int    reflection   int       rgb      list
+62     dis    cm       int    inches       int       light    list
+64     3x3
+
