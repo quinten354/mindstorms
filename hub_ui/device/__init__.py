@@ -1,6 +1,8 @@
 # import modules
 import hub as _hub
 
+runtime_data = {'ui': True, 'run': None, 'stop': False, 'refresh_ui': False, 'sensor_data': False, 'program_input': ''}
+
 def get_led():
     return _hub.led()
 

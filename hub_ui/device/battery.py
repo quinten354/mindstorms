@@ -12,3 +12,6 @@ def get_current():
 def get_temp():
     return hub.battery.temperature()
 
+def get_charging():
+    return bool(hub.battery.charger_detect())
+

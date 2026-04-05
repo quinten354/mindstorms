@@ -1,70 +1,55 @@
 # library for connecting to lego 88010 remote
 from time import time_ns as time
+from hub_ui import remote as remote_lib
 
-def connect(events):
-    events['remote_connect'] = 'connect'
+OFF = const(0x00)
+PINK = const(0x01)
+PURPLE = const(0x02)
+BLUE = const(0x03)
+LIGHTBLUE = const(0x04)
+LIGHTGREEN = const(0x05)
+GREEN = const(0x06)
+YELLOW = const(0x07)
+ORANGE = const(0x08)
+RED = const(0x09)
+WHITE = const(0x0A)
 
-def is_connected(events):
-    return bool(events['remote'])
+colors = [OFF, PINK, PURPLE, BLUE, LIGHTBLUE, LIGHTGREEN, GREEN, YELLOW, ORANGE, RED, WHITE]
 
-def disconnect(events):
-    events['remote_connect'] = 'disconnect'
+remote = remote_lib.Remote()
 
-def get_remote(events):
-    return events['remote']
+def connect(cancel_func):
+    connector = remote.connect()
+    while True:
+        try:
+            next(connector)
+        except:
+            break
+        if cancel_func():
+            disconnect()
+            break
 
-def get_pressed(events):
-    try:
-        return events['remote'].pressed()
-    except AttributeError:
-        return
+def disconnect():
+    remote.cancel()
 
-def is_pressed(events, button):
+def get_pressed():
+    return remote.pressed()
+
+def is_pressed(button):
     if type(button) != str:
         raise TypeError('button must be str')
-    pressed = get_pressed(events)
+    pressed = get_pressed()
     if type(pressed) == tuple:
         return button in pressed
 
-def get_value(events):
-    pressed = get_pressed(events)
-    if 'LEFT_PLUS' in pressed and events['remote_value'][2] == 0:
-        events['remote_value'][0] = events['remote_value'][0] + 1
-        events['remote_value'][2] = time()
-    elif 'LEFT_PLUS' in pressed and (time() - 750000000) > events['remote_value'][2] and events['remote_value'][2] > 0:
-        events['remote_value'][0] = events['remote_value'][0] + 0.1
+def set_color(color):
+    col = colors[color]
+    remote.color(col)
+
+def was_pressed(button):
+    if button in remote.__was_pressed:
+        remote.__was_pressed.remove(button)
+        return True
     else:
-        events['remote_value'][2] = 0
-
-    if 'LEFT' in pressed:
-        events['remote_value'][0] = 0
-
-    if 'LEFT_MINUS' in pressed and events['remote_value'][3] == 0:
-        events['remote_value'][0] = events['remote_value'][0] - 1
-        events['remote_value'][3] = time()
-    elif 'LEFT_MINUS' in pressed and (time() - 750000000) > events['remote_value'][3] and events['remote_value'][3] > 0:
-        events['remote_value'][0] = events['remote_value'][0] + 0.1
-    else:
-        events['remote_value'][3] = 0
-
-    if 'RIGHT_PLUS' in pressed and events['remote_value'][4] == 0:
-        events['remote_value'][1] = events['remote_value'][1] + 1
-        events['remote_value'][4] = time()
-    elif 'RIGHT_PLUS' in pressed and (time() - 750000000) > events['remote_value'][4] and events['remote_value'][4] > 0:
-        events['remote_value'][1] = events['remote_value'][1] + 0.1
-    else:
-        events['remote_value'][4] = 0
-
-    if 'RIGHT' in pressed:
-        events['remote_value'][1] = 0
-
-    if 'RIGHT_MINUS' in pressed and events['remote_value'][5] == 0:
-        events['remote_value'][1] = events['remote_value'][1] - 1
-        events['remote_value'][5] = time()
-    elif 'RIGHT_MINUS' in pressed and (time() - 750000000) > events['remote_value'][5] and events['remote_value'][5] > 0:
-        events['remote_value'][1] = events['remote_value'][1] + 0.1
-    else:
-        events['remote_value'][5] = 0
-
-    return events['remote_value'][0], events['remote_value'][1]
+        return False
 

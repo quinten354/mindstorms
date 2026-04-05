@@ -96,7 +96,7 @@ class devices:
             port = _get_port(port)
             port.device.mode(0)
             try:
-                return port.device.get()[0] * 2.54
+                return port.device.get()[0] / 2.54
             except:
                 return None
 
@@ -238,13 +238,6 @@ class devices:
                 return output * 2.54
             else:
                 return None
-
-        def get_rgb(port):
-            if get_type(port) != 37:
-                raise RuntimeError('No color-distance sensor (dev 37) connected to port ' + str(port) + '.')
-            port = _get_port(port)
-            port.device.mode(6)
-            return port.device.get()
 
         def get_color(port):
             if get_type(port) != 37:

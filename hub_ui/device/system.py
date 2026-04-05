@@ -1,5 +1,8 @@
+import hub
 import os
 from time import sleep as wait
+import sys
+import io
 
 import device
 import device.port
@@ -11,47 +14,20 @@ def show_error():
     wait(0.2)
     set_led(rgb_colors.WHITE)
 
-def print_error(error, message = None):
+def print_error(error, message = None, log_file = None):
+    buf = io.StringIO()
+    sys.print_exception(error, buf)
+    error_string = buf.getvalue()
+    buf.close()
     if message:
-        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': str(message)})
+        print({'type': 'error', 'name': 'ExecuteError', 'errmessage': str(error_string), 'message': str(message)})
     else:
-        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': None})
+        print({'type': 'error', 'name': 'ExecuteError', 'errmessage': str(error_string), 'message': None})
 
-def sync_programs():
-    listdir = os.listdir('/programs')
-    programs = []
-    for item in listdir:
-        programs.append({'name': item.split('.py')[0], 'nickname': item.split('.py')[0]})
-
-    file = open('/.program_info')
-    try:
-        data = eval(file.read())
-    except:
-        data = []
-
-    file.close()
-
-    for item in data:
-        exist = False
-        for program in programs:
-            if item['name'] == program['name']:
-                exist = True
-
-        if not exist:
-            data.remove(item)
-
-    for program in programs:
-        exist = False
-        for item in data:
-            if item['name'] == program['name']:
-                exist = True
-
-        if not exist:
-            data.append(program)
-
-    file = open('/.program_info', mode = 'w')
-    file.write(str(data))
-    file.close()
+    if log_file:
+        file = open(log_file, mode = 'w')
+        file.write('\n\n' + str(error_string))
+        file.close()
 
 def reset():
     set_led(rgb_colors.WHITE)
@@ -61,4 +37,8 @@ def reset():
             device.port.motor.float(port)
         if dev_type == 64:
             device.port.devices.light_matrix.clear(port)
+
+# continue event loop
+def cel():
+    hub.config['cel']()
 
