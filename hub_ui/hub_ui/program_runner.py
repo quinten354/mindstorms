@@ -1,101 +1,101 @@
-# import modules
-import uasyncio as asyncio
 import sys
-import builtins
 
-from .settings import main as settings
-from device.system import show_error, print_error, reset
+from .errors import EndOfProgramError
 
-# if the user runs a program in tmp (for example for a test)
-sys.path.append('/tmp')
+import device
+from device import runtime_data
+from device.system import print_error, show_error
 
-async def main(events):
-    running = False
-    while True:
-        # check if the program runner is on
-        if not events['program_runner']:
-            # do nothing
-            await asyncio.sleep(1)
-            continue
+class User_program():
+    def __init__(self, path):
+        self.path = path
 
-        # when stop is True, the program runner must exit
-        if events['stop_program_runner']:
-            events['run'] = None
-            events['program_runner'] = False
-            events['stop_program_runner'] = False
-            continue
+        try:
+            file = open(self.path)
+        except Exception as error:
+            show_error()
+            print_error(error, message = 'Cannot open file \'' + self.path + '\'.')
+            self.main = None
+            return
 
-        # if the program runner is on, run must have a name of what the program runner must run
-        if not events['run']:
-            events['program_runner'] = False
-            continue
+        data = file.read()
+        file.close()
+        del file
 
-        # if running is False (the program runner has not setted up), set up
-        if not running:
-            if events['run'] == 'settings':
-                a = settings()
-            else:
-                # import program
-                try:
-                    exec('import ' + events['run'])
-                except Exception as error:
-                    print_error(error)
-                    show_error()
-                    running = False
-                    events['program_runner'] = False
-                    events['run'] = None
-                    reset()
-                    continue
+        def exit():
+            raise EndOfProgramError
 
-                # execute MODULE.main to setup program
-                try:
-                    a = eval(events['run'] + '.main()')
-                except Exception as error:
-                    print_error(error)
-                    show_error()
-                    running = False
-                    events['program_runner'] = False
-                    events['run'] = None
-                    reset()
-                    continue
+        self.ns = {'__name__': '__main__', '__file__': self.path, 'exit': exit, 'print': device.io.print, 'input': device.io.input, 'getch': device.io.getch, 'getall': device.io.getall}
 
-            # set running to True, the program has setted up
-            running = True
+        try:
+            exec(data, self.ns)
+        except Exception as error:
+            show_error()
+            print_error(error)
+            self.main = None
+            runtime_data['run'] = None
+            runtime_data['ui'] = True
+            runtime_data['stop'] = False
+            device.system.reset()
+            return
 
-        # when a has a value
-        if a:
-            # continue program and continue event loop
-            try:
-                while True:
-                    t = a.__next__()
-                    if type(t) == int:
-                        await asyncio.sleep(t)
-                    else:
-                        await asyncio.sleep(0)
+        del data
 
-            except builtins.StopIteration:
-                try:
-                    exec('del ' + events['run'])
-                except:
-                    pass
-    
-                running = False
-                events['program_runner'] = False
-                events['run'] = None
-                reset()
-                continue
-
-            except Exception as error:
-                print_error(error)
-                show_error()
-                reset()
-    
-                await asyncio.sleep(0.1)
-
-        # turn off program runner
+        if 'main' in list(self.ns.keys()):
+            self.main_func = self.ns['main']
         else:
-            running = False
-            events['program_runner'] = False
-            events['run'] = None
-            reset()
+            show_error()
+            print({'type': 'error', 'name': 'CustomedError', 'message': 'No \'main()\' function found in file \'' + self.path + '\'.'})
+            self.main = None
+            runtime_data['run'] = None
+            runtime_data['ui'] = True
+            runtime_data['stop'] = False
+            device.system.reset()
+            return
+
+        try:
+            self.main = self.main_func()
+        except (StopIteration, SystemExit, EndOfProgramError):
+            runtime_data['run'] = None
+            runtime_data['ui'] = True
+            runtime_data['stop'] = False
+            self.main = None
+            device.system.reset()
+        except Exception as error:
+            self.main = None
+            print_error(error)
+            show_error()
+            runtime_data['run'] = None
+            runtime_data['ui'] = True
+            runtime_data['stop'] = False
+            device.system.reset()
+
+    def restart(self):
+        try:
+            self.main = self.main_func()
+        except Exception as error:
+            self.main = None
+            print_error(error)
+
+    def run(self):
+        if str(type(self.main)) == "<class 'generator'>":
+            try:
+                next(self.main)
+            except (StopIteration, SystemExit):
+                self.main = None
+                raise EndOfProgramError
+            except Exception as error:
+                show_error()
+                print_error(error)
+                runtime_data['run'] = None
+                runtime_data['ui'] = True
+                runtime_data['stop'] = False
+                self.main = None
+                device.system.reset()
+        else:
+            runtime_data['run'] = None
+            runtime_data['ui'] = True
+            runtime_data['stop'] = False
+            self.main = None
+            device.system.reset()
 

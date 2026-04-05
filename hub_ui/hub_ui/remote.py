@@ -12,6 +12,7 @@ class Remote:
         self.__ble.active(True)
         self.__ble.irq(self.__irq)
         self.__ble_const = _RemoteConstant()
+        self.__was_pressed = []
 
         self.__address = bytes()
         self.__pressed = tuple()
@@ -117,6 +118,9 @@ class Remote:
                 self.__state[4] = _RemoteConstant.Right_Button[1][notify_data[5]]
                 self.__state[5] = _RemoteConstant.Right_Button[2][notify_data[6]]
         self.__pressed = tuple([i for i in self.__state if i != str()])
+        for i in self.__state:
+            if i and i not in self.__was_pressed:
+                self.__was_pressed.append(i)
 
 
 class _RemoteButtons:

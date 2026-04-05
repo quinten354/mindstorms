@@ -2,38 +2,50 @@
 import select
 import sys
 import hub
-import uasyncio as asyncio
 import os
 
-from device.system import sync_programs, print_error
+from hub_ui.sensor_data import send_sensor_data
+
+import device
+import device.port
+import device.battery
+import device.path
+import device.button
+import device.motion
+import device.display
+import device.sound
+import device.constants
+import device.io
+import device.remote
+import device.system
+from device import runtime_data
+from device.system import print_error
 from device.path import isdir
 
-async def main(events):
+def main():
     # setup spoll
     spoll = select.poll()
     spoll.register(sys.stdin, select.POLLIN)
     print()
     data = ''
+    cmd = {'print': device.io.print, 'input': device.io.input, 'getch': device.io.getch, 'getall': device.io.getall, 'input_avail': device.io.input_avail}
     while True:
         # when there is none input, wait
         if not spoll.poll(0):
-            await asyncio.sleep(0.5)
+            yield
             continue
 
-        # whan there is input, read 1 byte
+        # when there is input, read 1 byte
         data = data + sys.stdin.read(1)
-        # when the last character is a newline, execute command
-        if data[-1] != '\\n':
-            # else, wait
-            await asyncio.sleep(0)
+        if data[-1] != '\n':
+            yield
             continue
 
-        if data == '\\n':
+        if data == '\n':
             print()
             data = ''
             continue
 
-        # convert string to dict
         try:
             data = eval(data)
         except:
@@ -96,73 +108,6 @@ async def main(events):
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for restart must have 'fast'."})
 
-            # set temporarily power off timeout
-            elif data['type'] == 'power_off_timeout_tmp':
-                if 'timeout' in keys:
-                    hub.power_off(timeout = data['timeout'] * 1000)
-                    hub.config['powerdown_timeout'] = data['timeout'] * 1000
-                    events['power_off_timeout'] = data['timeout'] * 1000
-                else:
-                    print({'type': 'error', 'name': 'InputError', 'message': "A request for power off timeout must have 'timeout'."})
-
-            elif data['type'] == 'power_off_timeout':
-                if 'timeout' in keys:
-                    hub.power_off(timeout = data['timeout'] * 1000)
-                    hub.config['powerdown_timeout'] = data['timeout'] * 1000
-                    events['power_off_timeout'] = data['timeout'] * 1000
-                    file = open('/etc/config')
-                    config = file.read()
-                    file.close()
-                    try:
-                        config = eval(config)
-                    except:
-                        config = {}
-                    config['power_off_timeout'] = data['timeout'] * 1000
-                    file = open('/etc/config', mode = 'w')
-                    file.write(str(config))
-                    file.close()
-                else:
-                    print({'type': 'error', 'name': 'InputError', 'message': "A request for power off timeout must have 'timeout'."})
-
-            # upload a program
-            elif data['type'] == 'upload_program':
-                if 'name' in keys and 'nickname' in keys:
-                    try:
-                        file = open('/.program_info')
-                        program_info = file.read()
-                        file.close()
-                    except:
-                        open('/.program_info', mode = 'x').close()
-                        program_info = ''
-
-                    if program_info != '':
-                        try:
-                            list_info = eval(program_info)
-                        except Exception as error:
-                            print_error(error, 'Error by processing data.')
-                            data = ''
-                            continue
-                    else:
-                        list_info = []
-
-                    for info in list_info:
-                        if info['name'] == data['name']:
-                            list_info.remove(info)
-
-                    if 'animation' in keys:
-                        list_info.append({'name': data['name'], 'nickname': data['nickname'], 'picture': data['animation']})
-                    else:
-                        list_info.append({'name': data['name'], 'nickname': data['nickname']})
-
-                    file = open('/.program_info', mode = 'w')
-                    file.write(str(list_info))
-                    file.close()
-
-                    events['refresh_ui'] = True
-
-                else:
-                    print({'type': 'error', 'name': 'InputError', 'message': "A request for upload a program must have 'name', 'data', and optional 'animation'."})
-
             # execute a python command
             elif data['type'] == 'execute':
                 if 'command' in keys:
@@ -171,20 +116,34 @@ async def main(events):
                         print({'type': 'req_execute', 'command': data['command'], 'output': output})
                         del output
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't execute command."})
+                        print_error(error, "Can't execute command.")
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't execute command."})
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for execute a command must have 'command'."})
 
+            elif data['type'] == 'cmd':
+                if 'data' in keys:
+                    try:
+                        exec(data['data'], cmd)
+                    except Exception as error:
+                        print(type(error), error)
+                        print_error(error)
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A request for execute a cmd must have 'data'."})
+
+            elif data['type'] == 'reset_cmd':
+                cmd = {'print': device.io.print, 'input': device.io.input, 'getch': device.io.getch, 'getall': device.io.getall, 'input_avail': device.io.input_avail}
+
             # run a program in /tmp
             elif data['type'] == 'run_tmp':
                 if 'name' in keys and 'data' in keys:
-                    file = open('/tmp/' + str(data['name']) + '.py', mode = 'w')
+                    file = open('/tmp/' + str(data['name']), mode = 'w')
                     file.write(str(data['data']))
                     file.close()
 
-                    events['program_runner'] = True
-                    events['run'] = str(data['name'])
+                    runtime_data['run'] = '/tmp/' + str(data['name'])
+                    runtime_data['ui'] = False
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request to run a program in tmp must have 'name' and 'data'."})
@@ -192,86 +151,66 @@ async def main(events):
             # run a stored program
             elif data['type'] == 'run':
                 if 'name' in keys:
-                    events['program_runner'] = True
-                    events['run'] = str(data['name'])
+                    runtime_data['run'] = '/programs/' + str(data['name'])
+                    runtime_data['ui'] = False
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request to run a program must have 'name'."})
 
+            # run from a file
+            elif data['type'] == 'run_file':
+                if 'path' in keys:
+                    runtime_data['run'] = str(data['path'])
+                    runtime_data['ui'] = False
+
+                else:
+                    print({'type': 'error', 'name': 'InputError', 'message': "A request to run a program must have 'path'."})
+
             # get all stored programs
             elif data['type'] == 'get_programs':
                 listdir = os.listdir('/programs')
-                avail_programs = []
-                for item in listdir:
-                    avail_programs.append({'name': item.split('.py')[0], 'nickname': item.split('.py')[0]})
-
-                file = open('/.program_info')
-                try:
-                    program_info = eval(file.read())
-                except:
-                    program_info = []
-
-                for av_program in avail_programs:
-                    for prog_info in program_info:
-                        if av_program['name'] == prog_info['name']:
-                            av_program['nickname'] = prog_info['nickname']
-                            if 'picture' in list(prog_info.keys()):
-                                av_program['picture'] = prog_info['picture']
-
-                print({'type': 'req_programs', 'programs': avail_programs})
+                print({'type': 'req_programs', 'programs': listdir})
 
             # delete a program
             elif data['type'] == 'delete_program':
                 if 'name' in keys:
                     try:
-                        os.remove('/programs/' + data['name'] + '.py')
+                        os.remove('/programs/' + data['name'])
                     except Exception as error:
                         print_error(error, "Can't delete program '" + data['name'] + "'.")
 
-                    sync_programs()
-
-                    events['refresh_ui'] = True
+                    runtime_data['refresh_ui'] = True
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for delete a program must have 'name'."})
 
-            # sync all programs (update /.program_info)
-            elif data['type'] == 'sync_programs':
-                sync_programs()
-                events['refresh_ui'] = True
-
-            # stop all programs and continue ui
-            elif data['type'] == 'stop_all':
-                events['stop_program_runner'] = True
-                events['stop_ui'] = True
-
-            elif data['type'] == 'stop_ui':
-                events['stop_ui'] = True
-
-            elif data['type'] == 'stop_program_runner':
-                events['stop_program_runner'] = True
+            # stop running program
+            elif data['type'] == 'stop':
+                runtime_data['stop'] = True
 
             # start sending sensor data to computer
             elif data['type'] == 'start_send_sensor_data':
-                events['sensor_data'] = True
+                runtime_data['sensor_data'] = True
 
             # stop sending sensor data to computer
             elif data['type'] == 'stop_send_sensor_data':
-                events['sensor_data'] = False
+                runtime_data['sensor_data'] = False
 
             # controller command
             elif data['type'] == 'program_input':
                 if 'value' in keys:
-                    events['program_input'] = events['program_input'] + data['value']
+                    runtime_data['program_input'] = runtime_data['program_input'] + data['value']
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A program_input command must have 'value'."})
 
+            # get all files and dirs in directory
             elif data['type'] == 'ls':
                 if 'dir' in keys:
                     try:
                         listdir = os.listdir(data['dir'])
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get listdir of dir " + str(data['dir']) + '.'})
+                        print_error(error,  "Can't get listdir of dir " + str(data['dir']) + '.')
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get listdir of dir " + str(data['dir']) + '.'})
                     
                     files = []
                     dirs = []
@@ -292,79 +231,97 @@ async def main(events):
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A ls command must have 'dir'."})
 
+            # create file
             elif data['type'] == 'touch':
                 if 'path' in keys:
                     try:
                         open(data['path'], mode = 'x').close()
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't create file " + str(data['path']) + '.'})
+                        print_error("Can't create file " + str(data['path']) + '.')
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't create file " + str(data['path']) + '.'})
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A touch command must have 'path'."})
 
+            # remove file
             elif data['type'] == 'remove':
                 if 'path' in keys:
                     try:
                         os.remove(data['path'])
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't remove file " + str(data['path']) + '.'})
+                        print_error(error, "Can't remove file " + str(data['path']) + '.')
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't remove file " + str(data['path']) + '.'})
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A remove command must have 'path'."})
 
+            # create dir
             elif data['type'] == 'mkdir':
                 if 'dir' in keys:
                     try:
                         os.mkdir(data['dir'])
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't create dir " + str(data['dir']) + '.'})
+                        print_error(error, "Can't create dir " + str(data['dir']) + '.')
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't create dir " + str(data['dir']) + '.'})
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A mkdir command must have 'dir'."})
 
+            # remove dir
             elif data['type'] == 'rmdir':
                 if 'dir' in keys:
                     try:
                         os.rmdir(data['dir'])
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't remove dir " + str(data['dir']) + '.'})
+                        print_error(error,  "Can't remove dir " + str(data['dir']) + '.')
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't remove dir " + str(data['dir']) + '.'})
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A rmdir command must have 'dir'."})
 
+            # reset ui
             elif data['type'] == 'reset_ui':
-                events['refresh_ui'] = True
+                runtime_data['refresh_ui'] = True
 
+            # check given path is a directory
             elif data['type'] == 'isdir':
                 if 'path' in keys:
                     try:
-                        print({'type': 'isdir', 'value': isdir(path)})
+                        print({'type': 'isdir', 'value': isdir(data['path'])})
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get isdir of path " + str(data['path']) + '.'})
+                        print_error(error, "Can't get isdir of path " + str(data['path']) + '.')
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get isdir of path " + str(data['path']) + '.'})
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A isdir command must have 'path'."})
 
+            # get stat of path
             elif data['type'] == 'stat':
                 if 'path' in keys:
                     try:
                         print({'type': 'stat', 'value': os.stat(data['path'])})
                     except Exception as error:
-                        print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get stat of path " + str(data['path']) + '.'})
+                        print_error(error,  "Can't get stat of path " + str(data['path']) + '.')
+                        #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get stat of path " + str(data['path']) + '.'})
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A stat command must have 'path'."})
 
+            # get file system stat
             elif data['type'] == 'fsstat':
                 try:
                     print({'type': 'fsstat', 'value': os.statvfs('/')})
                 except Exception as error:
-                    print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get stat of filesystem."})
+                    print_error(error, "Can't get stat of filesystem.")
+                    #print({'type': 'error', 'name': 'ExecuteError', 'errname': str(type(error)), 'errmessage': str(error), 'message': "Can't get stat of filesystem."})
 
-            elif data['type'] == 'get_events':
-                ev = events.copy()
-                del ev['remote']
-                print({'type': 'events', 'value': ev})
+            # get runtime_data
+            elif data['type'] == 'get_runtime_data':
+                print({'type': 'runtime_data', 'value': runtime_data.copy()})
+
+            # get sensor data
+            elif data['type'] == 'get_sensor_data':
+                send_sensor_data()
 
             else:
                 print({'type': 'error', 'name': 'InputError', 'message': 'Unknown type: ' + str(data['type'])})
@@ -374,5 +331,5 @@ async def main(events):
 
         data = ''
 
-        await asyncio.sleep(0)
+        yield
 
