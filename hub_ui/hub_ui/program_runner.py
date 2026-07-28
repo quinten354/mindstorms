@@ -23,7 +23,12 @@ class User_program():
         del file
 
         def exit():
-            raise EndOfProgramError
+            self.main = None
+            runtime_data['run'] = None
+            runtime_data['ui'] = True
+            runtime_data['stop'] = False
+            device.system.reset()
+            return
 
         self.ns = {'__name__': '__main__', '__file__': self.path, 'exit': exit, 'print': device.io.print, 'input': device.io.input, 'getch': device.io.getch, 'getall': device.io.getall}
 
@@ -75,15 +80,22 @@ class User_program():
             self.main = self.main_func()
         except Exception as error:
             self.main = None
+            runtime_data['run'] = None
+            runtime_data['ui'] = True
+            runtime_data['stop'] = False
             print_error(error)
+            device.system.reset()
 
     def run(self):
         if str(type(self.main)) == "<class 'generator'>":
             try:
                 next(self.main)
             except (StopIteration, SystemExit):
+                runtime_data['run'] = None
+                runtime_data['ui'] = True
+                runtime_data['stop'] = False
                 self.main = None
-                raise EndOfProgramError
+                device.system.reset()
             except Exception as error:
                 show_error()
                 print_error(error)

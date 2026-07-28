@@ -5,6 +5,7 @@ import hub
 import os
 
 from hub_ui.sensor_data import send_sensor_data
+from hub_ui.shell import main as user_shell
 
 import device
 import device.port
@@ -37,6 +38,11 @@ def main():
 
         # when there is input, read 1 byte
         data = data + sys.stdin.read(1)
+        if data[-1] == '\x01':
+            user_shell()
+            data = data[:-1]
+            continue
+
         if data[-1] != '\n':
             yield
             continue
@@ -72,7 +78,7 @@ def main():
                         file.write(data['content'])
                         file.close()
                     except Exception as error:
-                        print_error(error, 'Error by uploading a file.')
+                        print_error(error, 'Error by uploading a file to \'' + data['path'] + '\'.')
 
                 else:
                     print({'type': 'error', 'name': 'InputError', 'message': "A request for upload a file must have 'path' and 'size'."})
@@ -142,6 +148,7 @@ def main():
                     file.write(str(data['data']))
                     file.close()
 
+                    runtime_data['stop'] = False
                     runtime_data['run'] = '/tmp/' + str(data['name'])
                     runtime_data['ui'] = False
 
@@ -151,6 +158,7 @@ def main():
             # run a stored program
             elif data['type'] == 'run':
                 if 'name' in keys:
+                    runtime_data['stop'] = False
                     runtime_data['run'] = '/programs/' + str(data['name'])
                     runtime_data['ui'] = False
 
@@ -160,6 +168,7 @@ def main():
             # run from a file
             elif data['type'] == 'run_file':
                 if 'path' in keys:
+                    runtime_data['stop'] = False
                     runtime_data['run'] = str(data['path'])
                     runtime_data['ui'] = False
 

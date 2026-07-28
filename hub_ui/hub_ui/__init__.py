@@ -5,6 +5,8 @@ from .ui import main as ui_func
 from .io import main as io_func
 from .sensor_data import main as event_loop_func, send_loop as sensor_data_func
 from device.system import print_error
+from device import runtime_data
+from .errors import EndOfProgramError
 
 list_cel = {'ui': ui_func(), 'io': io_func(), 'event_loop': event_loop_func(), 'sensor_data': sensor_data_func()}
 
@@ -19,13 +21,16 @@ def cel():
         next(list_cel['event_loop'])
     except Exception as error:
         print_error(error)
-        list_cel['sensor_data'] = sensor_data_func()
+        list_cel['event_loop'] = event_loop_func()
 
     try:
         next(list_cel['sensor_data'])
     except Exception as error:
         print_error(error)
-        list_cel['event_loop'] = event_loop_func()
+        list_cel['sensor_data'] = sensor_data_func()
+    
+    if runtime_data['stop']:
+        raise EndOfProgramError
 
 hub.config['cel'] = cel
 
@@ -47,11 +52,11 @@ def main():
             next(list_cel['event_loop'])
         except Exception as error:
             print_error(error)
-            list_cel['sensor_data'] = sensor_data_func()
+            list_cel['event_loop'] = event_loop_func()
 
         try:
             next(list_cel['sensor_data'])
         except Exception as error:
             print_error(error)
-            list_cel['event_loop'] = event_loop_func()
+            list_cel['sensor_data'] = sensor_data_func()
 

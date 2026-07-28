@@ -4,7 +4,7 @@ import hub
 import device.port
 import device.motion
 import device.battery
-from time import time
+from time import time_ns as time
 from device import runtime_data
 
 def main():
@@ -44,7 +44,7 @@ def main():
         else:
             ct_pressed = 0
 
-        if (time() - ct_pressed) > 0.6 and ct_pressed != 0:
+        if (time() - ct_pressed) > 600000000 and ct_pressed != 0:
             runtime_data['stop'] = True
 
         yield
@@ -54,7 +54,7 @@ def send_loop():
         prev_time = time()
         if runtime_data['sensor_data']:
             send_sensor_data()
-        while (time() - prev_time) < 2:
+        while (time() - prev_time) < 2000000000:
             yield
 
 def send_sensor_data():
