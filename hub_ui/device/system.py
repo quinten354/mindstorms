@@ -14,15 +14,18 @@ def show_error():
     wait(0.2)
     set_led(rgb_colors.WHITE)
 
-def print_error(error, message = None, log_file = None):
+def print_error(error, message = None, log_file = None, event_loop = True):
     buf = io.StringIO()
     sys.print_exception(error, buf)
     error_string = buf.getvalue()
     buf.close()
-    if message:
-        print({'type': 'error', 'name': 'ExecuteError', 'errmessage': str(error_string), 'message': str(message)})
+    if event_loop:
+        if message:
+            print({'type': 'error', 'name': 'ExecuteError', 'errmessage': str(error_string), 'message': str(message)})
+        else:
+            print({'type': 'error', 'name': 'ExecuteError', 'errmessage': str(error_string), 'message': None})
     else:
-        print({'type': 'error', 'name': 'ExecuteError', 'errmessage': str(error_string), 'message': None})
+        print(error_string)
 
     if log_file:
         file = open(log_file, mode = 'w')

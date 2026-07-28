@@ -8,7 +8,7 @@ def set_volume(volume):
     hub.sound.volume(volume)
 
 def beep(freq = 1000, time = 0.2):
-    hub.sound.beep(freq, time * 1000)
+    hub.sound.beep(freq, round(time * 1000))
 
 def play(name):
     played = False

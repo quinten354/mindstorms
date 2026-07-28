@@ -268,13 +268,68 @@ class devices:
             return port.device.get()[0]
 
     class force_sensor:
-        pass
+        def get_newton(port):
+            if get_type(port) != 63:
+                raise RuntimeError('No force sensor (dev 63) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(0)
+            return port.device.get()[0]
+
+        def get_newton_float(port):
+            if get_type(port) != 63:
+                raise RuntimeError('No force sensor (dev 63) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(4)
+            return (port.device.get()[0] - 375) / 32
+
+        def get_touch(port):
+            if get_type(port) != 63:
+                raise RuntimeError('No force sensor (dev 63) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(2)
+            return bool(port.device.get()[0])
 
     class tilt_sensor:
-        pass
+        def get_tilt(port):
+            if get_type(port) != 34:
+                raise RuntimeError('No tilt sensor (dev 34) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(0)
+            return port.device.get()
 
     class motion_sensor:
-        pass
+        last_count = 0
+
+        def get_inches(port):
+            if get_type(port) != 35:
+                raise RuntimeError('No motion sensor (dev 35) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(0)
+            return port.device.get()[0]
+
+        def get_cm(port):
+            if get_type(port) != 35:
+                raise RuntimeError('No motion sensor (dev 35) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(0)
+            return port.device.get()[0] * 2.54
+
+        def get_counted(port):
+            if get_type(port) != 35:
+                raise RuntimeError('No motion sensor (dev 35) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(1)
+            return port.device.get()[0]
+
+        def get_count_diff(port):
+            if get_type(port) != 35:
+                raise RuntimeError('No motion sensor (dev 35) connected to port ' + str(port) + '.')
+            port = _get_port(port)
+            port.device.mode(1)
+            count = port.device.get()[0]
+            diff = count - devices.motion_sensor.last_count
+            devices.motion_sensor.last_count = count
+            return diff
 
 def _get_port(port):
     return eval('hub.port.' + port.upper())
