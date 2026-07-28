@@ -4,6 +4,19 @@ import serial
 
 from .sensor_data import update as update_sensor_data
 
+def chsize(bytes):
+    pow = 0
+    while bytes >= 1024:
+        bytes = bytes / 1024
+        pow = pow + 1
+
+    bytes = str(bytes)
+    bytes = bytes[:4]
+    if bytes[-1] == '.':
+        bytes = bytes[:-1]
+    size = bytes + ['', 'K', 'M', 'G', 'T'][pow]
+    return size
+
 # set function to get data on requests from the hub
 def get_data_from_hub(hub):
     def add_output(dict_):
@@ -161,7 +174,7 @@ def get_data_from_hub(hub):
 
                         elif data['type'] == 'fsstat':
                             if 'value' in keys:
-                                print('OUTPUT: Fsstat: Total blocks: ' + str(data['value'][2]) + ', Used blocks: ' + str(data['value'][2] - data['value'][3]) + ', Free blocks: ' + str(data['value'][3]) + ', Usage: ' + str(round(((data['value'][2] - data['value'][3]) / data['value'][3]) * 100, 2)) + '%.')
+                                print('OUTPUT: Fsstat: Total size: ' + chsize(data['value'][2] * data['value'][1]) + ', Used size: ' + chsize((data['value'][2] - data['value'][3]) * data['value'][1]) + ', Free size: ' + chsize(data['value'][3] * data['value'][1]) + ', Usage: ' + str(round(((data['value'][2] - data['value'][3]) / data['value'][3]) * 100, 2)) + '%.')
                                 add_output(data)
 
                             else:

@@ -143,7 +143,7 @@ class Hub_connect_event_loop:
             string = str(string).encode()
             self._serial.write(string)
             self._serial.flush()
-            wait(0.0625)
+            wait(0.1)
 
     def exec(self, command):
         self.send({'type': 'execute', 'command': str(command)})
@@ -235,7 +235,7 @@ class Hub_connect_event_loop:
         self._manager.shutdown()
         self._serial.close()
 
-def cut_string(string, size = 64):
+def cut_string(string, size = 32):
     for i in range(0, len(string), size):
         yield string[i:i + size]
 
